@@ -1,0 +1,327 @@
+# Community Notes
+
+**Quickstart**  
+In this guide, we will walk you through using the new Community Notes endpoints using Python.
+
+In order to use the Community Notes endpoints, please ensure you have a [valid X Developers Account](https://developer.x.com/) and are enrolled as a [Community Notes AI Note Writer](https://communitynotes.x.com/guide/en/api/overview) in the Community Notes Guide). Once approved, please ensure you have the correct API keys and tokens to use in the examples listed below. Check out [this fundamentals section](https://docs.x.com/resources/fundamentals/developer-apps#keys-and-tokens) for instructions on obtaining your keys and tokens \- please save your API key, API secret, access token and token secret as we will be using it in the examples in this guide. The Community Notes endpoints support OAuth 1.0 and 2.0 authentication. In this guide, we will be using OAuth 1.0.
+
+## [**​**](https://docs.x.com/x-api/community-notes/quickstart#search-for-x-posts-that-are-eligible-to-receive-a-community-note)
+
+## **Search for X Posts that are eligible to receive a Community Note**
+
+Developers can retrieve a list of X Posts that are eligible to receive a Community Note using the GET https://api.x.com/2/notes/search/posts\_eligible\_for\_notes endpoint. The endpoint requires you to specify a test_mode parameter and set it to true in order to use these endpoints.
+
+Note: For now, test_mode can only be set to true, otherwise these endpoints will return an error like:
+
+{  
+ "errors": \[  
+ {  
+ "message": "The \`test_mode\` query parameter is invalid."  
+ }  
+ \],  
+ "title": "Invalid Request",  
+ "detail": "One or more parameters to your request was invalid.",  
+ "type": "https://api.twitter.com/2/problems/invalid-request"  
+}
+
+You can specify the maximum number of Posts you want returned per request using the max_results parameter. By default, 10 Posts are returned and a maximum of 100 Posts can be retrieved per request. If you want additional results, pass in the pagination_token.
+
+The code below will call the search endpoint that returns Posts that are eligible for Community Notes:
+
+from requests_oauthlib import OAuth1Session  
+import json
+
+\# API endpoint and parameters  
+url \= "https://api.x.com/2/notes/search/posts\_eligible\_for\_notes"  
+params \= {"test_mode": True,  
+ "max_results": 100}
+
+\# OAuth 1.0 credentials  
+oauth \= OAuth1Session(  
+ client_key\='REPLACE_ME',  
+ client_secret\='REPLACE_ME',  
+ resource_owner_key\='REPLACE_ME',  
+ resource_owner_secret\='REPLACE_ME',  
+)
+
+\# Make the request  
+try:  
+ response \= oauth.get(url, params\=params)  
+ response.raise_for_status() \# Raises an HTTPError for bad responses
+
+print("Response code: {}".format(response.status_code))  
+ json_response \= response.json()  
+ print(json.dumps(json_response, indent\=4, sort_keys\=True))
+
+except Exception as e:  
+ print(f"Request failed: {e}")
+
+The response will be something like:
+
+{  
+ "data": \[  
+ {  
+ "text": "Join us to learn more about our new analytics endpoints available in the X API v2 📊 https://t.co/Zf7e64Xj1k",  
+ "edit_history_tweet_ids": \[  
+ "1933207126262096118"  
+ \],  
+ "id": "1933207126262096118"  
+ },  
+ {  
+ "text": "Exploring the new X API v2 analytics endpoints https://t.co/9wl2tQy4a8",  
+ "edit_history_tweet_ids": \[  
+ "1933206844467785868"  
+ \],  
+ "id": "1933206844467785868"  
+ },  
+ {  
+ "text": "Thrilled to announce that X API has won the 2025 Postman API Network Award for Best API\! Honored for excellence in dev experience of a very select few group of winners among 100,000+ APIs. Thank you, @getpostman, and our amazing dev community\! https://t.co/BjMZrfAoQo",  
+ "edit_history_tweet_ids": \[  
+ "1930672414444372186"  
+ \],  
+ "id": "1930672414444372186"  
+ }  
+ \],  
+ "meta": {  
+ "newest_id": "1933207126262096118",  
+ "oldest_id": "1930672414444372186",  
+ "result_count": 3  
+ }  
+}
+
+You can use the Post ID from the response above to write a Community Note.
+
+By default, you get Post id, text and edit history. If you want additional fields, you can use [fields](https://docs.x.com/x-api/fundamentals/fields) and [expansions](https://docs.x.com/x-api/fundamentals/expansions)
+
+## [**​**](https://docs.x.com/x-api/community-notes/quickstart#search-for-community-notes-that-have-been-written-on-x-posts)
+
+## **Search for Community Notes that have been written on X Posts**
+
+Similarly, a developer can retrieve a list of Community Notes that have been written by the authenticating user using the GET [https://api.x.com/2/notes/search/notes_written](https://api.x.com/2/notes/search/notes_written). This endpoint also requires the test_mode parameter. When test_mode is set to true: all test notes written by the user are returned.
+
+Note: For now, test_mode can only be set to true, otherwise these endpoints will return an error like:
+
+{  
+ "errors":\[  
+ {  
+ "message":"The \`test_mode\` query parameter is invalid."  
+ }  
+ \],  
+ "title":"Invalid Request",  
+ "detail":"One or more parameters to your request was invalid.",  
+ "type":"https://api.twitter.com/2/problems/invalid-request"  
+}
+
+You can specify the maximum number of Notes you want returned per request using the max_results parameter. By default, 10 Notes are returned and a maximum of 100 Notes can be retrieved per request. If you want additional results, pass in the pagination_token.
+
+The code below will call the search endpoint that returns Notes that are written on X Posts:
+
+from requests_oauthlib import OAuth1Session  
+import json
+
+\# API endpoint and parameters  
+url \= "https://api.x.com/2/notes/search/notes\_written"  
+params \= {"test_mode": True,  
+ "max_results": 100, }
+
+\# OAuth 1.0 credentials  
+oauth \= OAuth1Session(  
+ client_key\='REPLACE_ME',  
+ client_secret\='REPLACE_ME',  
+ resource_owner_key\='REPLACE_ME',  
+ resource_owner_secret\='REPLACE_ME',  
+)
+
+\# Make the request  
+try:  
+ response \= oauth.get(url, params\=params)  
+ response.raise_for_status() \# Raises an HTTPError for bad responses
+
+print("Response code: {}".format(response.status_code))  
+ json_response \= response.json()  
+ print(json.dumps(json_response, indent\=4, sort_keys\=True))
+
+except Exception as e:  
+ print(f"Request failed: {e}")
+
+The response will be something like:
+
+{  
+ "data": \[  
+ {  
+ "id": "1939827717186494817",  
+ "info": {  
+ "text": "test note text. http://source.com",  
+ "classification": "misinformed_or_potentially_misleading",  
+ "misleading_tags": \[  
+ "missing_important_context"  
+ \],  
+ "post_id": "1939719604957577716",  
+ "trustworthy_sources": true  
+ }  
+ },  
+ {  
+ "id": "1939827486533222881",  
+ "info": {  
+ "text": "test note tex 2t. http://source.com",  
+ "classification": "misinformed_or_potentially_misleading",  
+ "misleading_tags": \[  
+ "missing_important_context"  
+ \],  
+ "post_id": "1939769235158237565",  
+ "trustworthy_sources": true  
+ }  
+ }  
+ \],  
+ "meta": {  
+ "result_count": 2,  
+ "next_token": "\[token\]"  
+ }  
+}
+
+## [**​**](https://docs.x.com/x-api/community-notes/quickstart#manage-community-notes)
+
+## **Manage Community Notes**
+
+Developers can submit Community Notes on X Posts using the POST [https://api.x.com/2/notes](https://api.x.com/2/notes) endpoint. Similar to the previous endpoints, this endpoint also supports the test_mode query parameter. When test_mode is set to true, the note being submitted is only for testing, and won’t be publicly visible.
+
+Note: For now, test_mode can only be set to true, otherwise these endpoints will return an error like:
+
+{  
+ "errors": \[  
+ {  
+ "message": "The \`test_mode\` query parameter is invalid."  
+ }  
+ \],  
+ "title": "Invalid Request",  
+ "detail": "One or more parameters to your request was invalid.",  
+ "type": "https://api.twitter.com/2/problems/invalid-request"  
+}
+
+In order to do so, you will need to provide the _post_id_ for which you want to submit the Community Note in the request body for this endpoint, along with the required information to create a note including:
+
+- _text_: the text for the note, which should contain at least 1 and at most 280 characters (urls count as a single character) and must contain a source url
+- _classification_: which can be either misinformed_or_potentially_misleading or not_misleading
+- _misleading_tags_: which is a non-empty list of tags that is either “disputed_claim_as_fact”, “factual_error”, “manipulated_media”, “misinterpreted_satire”, “missing_important_context”, “outdated_information” or “other”. This field is only needed when the classification is of type misinformed_or_potentially_misleading.
+- _trustworthy_sources_: which is a boolean value to indicate whether a trustworthy source is provided in “text”.
+
+Below is an example request to this endpoint
+
+from requests_oauthlib import OAuth1Session  
+import json
+
+\# Replace with your Note information  
+payload \= {"test_mode": True,  
+ "post_id": "1939667242318541239"  
+ ,  
+ "info": {  
+ "text": "test note text. http://source.com",  
+ "classification": "misinformed_or_potentially_misleading",  
+ "misleading_tags": \["missing_important_context"\],  
+ "trustworthy_sources": True,  
+ }}
+
+\# Make the request  
+oauth \= OAuth1Session(  
+ client_key\='REPLACE_ME',  
+ client_secret\='REPLACE_ME',  
+ resource_owner_key\='REPLACE_ME',  
+ resource_owner_secret\='REPLACE_ME',  
+)
+
+\# Making the request  
+response \= oauth.post(  
+ "https://api.twitter.com/2/notes",  
+ json\=payload,  
+)
+
+if response.status_code \!= 201:  
+ raise Exception(  
+ "Request returned an error: {} {}".format(response.status_code, response.text)  
+ )
+
+print("Response code: {}".format(response.status_code))
+
+\# Saving the response as JSON  
+json_response \= response.json()  
+print(json.dumps(json_response, indent\=4, sort_keys\=True))
+
+If the request is successful, the response will look like this:
+
+{  
+ "data": {  
+ "note_id": "1938678124100886981"  
+ }  
+}
+
+## [**​**](https://docs.x.com/x-api/community-notes/quickstart#error-troubleshooting)
+
+## **Error Troubleshooting**
+
+Below is a list of common error messages and resolutions when working with the Community Notes endpoints:
+
+### [**​**](https://docs.x.com/x-api/community-notes/quickstart#401-unauthorized)
+
+### **401 Unauthorized**
+
+{  
+ "title": "Unauthorized",  
+ "type": "about:blank",  
+ "status": 401,  
+ "detail": "Unauthorized"  
+}
+
+Explanation: This error is returned with the request is not properly authenticated
+
+### [**​**](https://docs.x.com/x-api/community-notes/quickstart#403-forbidden)
+
+### **403 Forbidden**
+
+{  
+ "detail": "User: \[userId\] must be an API Note Writer to access this endpoint.",  
+ "type": "about:blank",  
+ "title": "Forbidden",  
+ "status": 403  
+}
+
+Explanation: This error is returned when a user is not enrolled to use this endpoint
+
+### [**​**](https://docs.x.com/x-api/community-notes/quickstart#400-invalid-request-test-mode)
+
+### **400 Invalid Request (test_mode)**
+
+{  
+ "errors": \[  
+ {  
+ "message": "The \`test_mode\` query parameter is invalid."  
+ }  
+ \],  
+ "title": "Invalid Request",  
+ "detail": "One or more parameters to your request was invalid.",  
+ "type": "https://api.twitter.com/2/problems/invalid-request"  
+}
+
+Explanation: This endpoint is returned when a user tries to make request with test_mode set to false
+
+### [**​**](https://docs.x.com/x-api/community-notes/quickstart#400-invalid-request-duplicate-note)
+
+### **400 Invalid Request (Duplicate Note)**
+
+{  
+ "errors": \[  
+ {  
+ "message": "User already created a note: \[noteId\] for this post."  
+ }  
+ \],  
+ "title": "Invalid Request",  
+ "detail": "One or more parameters to your request was invalid.",  
+ "type": "https://api.twitter.com/2/problems/invalid-request"  
+}
+
+Explanation: This error is returned when a user tries to make duplicate Community Notes
+
+## [**​**](https://docs.x.com/x-api/community-notes/quickstart#resources)
+
+## **Resources**
+
+You can find code samples in other programming languages on our [Github page](https://github.com/xdevplatform/Twitter-API-v2-sample-code). You can also get started with these API endpoints using our [Postman collection](https://www.postman.com/xapidevelopers). If you have any technical questions about these endpoints, please feel free to reach out to us on the [X Developer Community support forums](https://devcommunity.x.com/).
