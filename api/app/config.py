@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     allowed_hosts: List[str] = ["localhost", "127.0.0.1"]
     
     class Config:
-        env_file = ".env"
+        env_file = ".env.local"
         case_sensitive = False
 
 
