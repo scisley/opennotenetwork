@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Optional
 
 
 class Settings(BaseSettings):
@@ -22,8 +22,14 @@ class Settings(BaseSettings):
     clerk_publishable_key: str
     clerk_secret_key: str
     
-    # External Services - LangGraph runs locally as Python functions
-    # No external URL needed
+    # External Services
+    openai_api_key: str
+    
+    # LangSmith observability (optional, used automatically by LangChain)
+    langsmith_api_key: Optional[str] = None
+    langsmith_tracing: Optional[str] = None
+    langsmith_endpoint: Optional[str] = None
+    langsmith_project: Optional[str] = None
     
     # Scheduling secrets
     ingest_secret: str
@@ -40,3 +46,14 @@ class Settings(BaseSettings):
 
 # Create global settings instance
 settings = Settings()
+
+# Set LangSmith environment variables for LangChain to use
+import os
+if settings.langsmith_api_key:
+    os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
+if settings.langsmith_tracing:
+    os.environ["LANGSMITH_TRACING"] = settings.langsmith_tracing
+if settings.langsmith_endpoint:
+    os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith_endpoint
+if settings.langsmith_project:
+    os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project

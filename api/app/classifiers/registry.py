@@ -5,6 +5,7 @@ from app.classifiers.base import BaseClassifier
 from app.classifiers.climate_misinformation_v1 import ClimateMisinformationV1
 from app.classifiers.topic_tagger_v1 import TopicTaggerV1
 from app.classifiers.science_domain_v1 import ScienceDomainV1
+from app.classifiers.full_fact_v1 import FullFactV1
 import structlog
 
 logger = structlog.get_logger()
@@ -15,6 +16,7 @@ CLASSIFIER_REGISTRY: Dict[str, Type[BaseClassifier]] = {
     "climate-misinformation-v1": ClimateMisinformationV1,
     "topic-tagger-v1": TopicTaggerV1,
     "science-domain-v1": ScienceDomainV1,
+    "full_fact_v1": FullFactV1,
 }
 
 
