@@ -16,6 +16,7 @@ export default function Home() {
             </div>
             <nav className="hidden md:flex space-x-8">
               <Link href="/notes" className="text-gray-900 hover:text-gray-600">Notes</Link>
+              <Link href="/admin/classifier-reruns" className="text-gray-900 hover:text-gray-600">Admin</Link>
               <Link href="/about" className="text-gray-500 hover:text-gray-900">About</Link>
             </nav>
           </div>

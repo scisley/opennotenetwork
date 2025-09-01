@@ -9,8 +9,53 @@ import asyncio
 
 from app.models import Post, Classifier, Classification
 from app.classifiers import get_classifier
+from sqlalchemy import delete, and_
 
 logger = structlog.get_logger()
+
+
+async def delete_classifications_for_posts(
+    session: AsyncSession,
+    post_uids: List[str],
+    classifier_slugs: Optional[List[str]] = None
+) -> int:
+    """
+    Delete classifications for specified posts and optionally specific classifiers
+    
+    Args:
+        session: Database session
+        post_uids: List of post UIDs to delete classifications for
+        classifier_slugs: Optional list of specific classifier slugs to delete.
+                         If None or empty, no deletions are performed.
+    
+    Returns:
+        Number of classifications deleted
+    """
+    if not post_uids:
+        logger.warning("No post UIDs provided for deletion")
+        return 0
+    
+    if not classifier_slugs:
+        logger.warning("No classifier slugs specified, skipping deletion")
+        return 0
+    
+    # Delete specific classifications for all posts in one query
+    logger.info(f"Deleting classifications for {len(post_uids)} posts, classifiers: {classifier_slugs}")
+    
+    result = await session.execute(
+        delete(Classification).where(
+            and_(
+                Classification.post_uid.in_(post_uids),
+                Classification.classifier_slug.in_(classifier_slugs)
+            )
+        )
+    )
+    
+    await session.commit()
+    deleted_count = result.rowcount
+    logger.info(f"Deleted {deleted_count} classifications")
+    
+    return deleted_count
 
 
 async def classify_post(
@@ -45,6 +90,7 @@ async def classify_post(
     # Get classifiers to run
     if classifier_slugs:
         # Run specific classifiers
+        logger.info(f"Running specific classifiers: {classifier_slugs}")
         classifier_query = select(Classifier).where(
             and_(
                 Classifier.slug.in_(classifier_slugs),
@@ -53,6 +99,7 @@ async def classify_post(
         )
     else:
         # Run all active classifiers
+        logger.info("Running all active classifiers")
         classifier_query = select(Classifier).where(Classifier.is_active == True)
     
     classifier_result = await session.execute(classifier_query)
@@ -184,23 +231,30 @@ async def classify_posts_batch(
     
     if parallel:
         # Run classifications in parallel with semaphore to limit concurrency
+        # Each task needs its own database session for thread safety
+        from app.database import async_session_factory
         semaphore = asyncio.Semaphore(max_concurrent)
         
         async def classify_with_semaphore(post_uid):
             async with semaphore:
-                return await classify_post(post_uid, session, classifier_slugs)
+                # Create a new session for this task
+                async with async_session_factory() as task_session:
+                    return await classify_post(post_uid, task_session, classifier_slugs)
         
         tasks = [classify_with_semaphore(uid) for uid in post_uids]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        for result in results:
+        for i, result in enumerate(results):
             if isinstance(result, Exception):
-                total_results["total_errors"].append(str(result))
+                error_msg = f"Error classifying {post_uids[i]}: {str(result)}"
+                logger.error(error_msg)
+                total_results["total_errors"].append(error_msg)
             else:
                 total_results["posts_processed"] += 1
                 total_results["total_classified"] += result.get("classified", 0)
                 total_results["total_skipped"] += result.get("skipped", 0)
-                total_results["total_errors"].extend(result.get("errors", []))
+                if result.get("errors"):
+                    total_results["total_errors"].extend(result.get("errors", []))
     else:
         # Run classifications sequentially
         for post_uid in post_uids:
@@ -222,7 +276,12 @@ async def classify_posts_batch(
         errors=len(total_results["total_errors"])
     )
     
-    return total_results
+    # Return with keys that match what classification_jobs expects
+    return {
+        "total_classified": total_results["total_classified"],
+        "total_skipped": total_results["total_skipped"],
+        "errors": total_results["total_errors"]
+    }
 
 
 async def reclassify_all_posts(

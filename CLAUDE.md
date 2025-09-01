@@ -157,3 +157,5 @@ RECONCILE_SECRET="..."
 # Notes
 
 - The Neon project ID for this project is floral-mud-07640645
+- When running the project yourself, don't use the standard port numbers.
+  Reserve those for the operator.

@@ -17,6 +17,13 @@ from app.schemas.admin import (
 )
 from app.services import ingestion, notegen, submission
 from app.services import classification
+from datetime import datetime
+
+def parse_iso_dates(start_date: str, end_date: str) -> tuple[datetime, datetime]:
+    """Parse ISO date strings, handling 'Z' timezone indicator"""
+    start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+    end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+    return start, end
 from app.auth import get_current_admin_user
 
 logger = structlog.get_logger()
@@ -351,6 +358,41 @@ async def reconcile_submissions(
     except Exception as e:
         logger.error("Reconciliation failed", error=str(e))
         raise HTTPException(status_code=500, detail="Reconciliation failed")
+
+
+# Batch reclassification endpoints
+@router.get("/posts-date-range/count")
+async def count_posts_by_date_range(
+    start_date: str,  # ISO format: 2024-01-01T00:00:00
+    end_date: str,    # ISO format: 2024-01-31T23:59:59
+    session: AsyncSession = Depends(get_session)
+):
+    """Count posts within a date range based on ingested_at timestamp"""
+    try:
+        # Parse dates
+        start, end = parse_iso_dates(start_date, end_date)
+        
+        # Count posts in range
+        count_result = await session.execute(
+            select(func.count(Post.post_uid))
+            .where(and_(
+                Post.ingested_at >= start,
+                Post.ingested_at <= end
+            ))
+        )
+        count = count_result.scalar() or 0
+        
+        return {
+            "start_date": start_date,
+            "end_date": end_date,
+            "post_count": count
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {str(e)}")
+    except Exception as e:
+        logger.error("Failed to count posts by date range", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to count posts")
 
 
 # Admin data endpoints
@@ -909,3 +951,96 @@ async def create_classification(
         await session.rollback()
         logger.error("Failed to create classification", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to create classification")
+
+
+# Batch reclassification endpoint
+@router.post("/batch-reclassify")
+async def batch_reclassify_posts(
+    start_date: str,
+    end_date: str,
+    classifier_slugs: Optional[List[str]] = Query(None),
+    force: bool = Query(True),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Trigger batch reclassification of posts within a date range
+    
+    Args:
+        start_date: Start date in ISO format
+        end_date: End date in ISO format
+        classifier_slugs: Optional list of specific classifier slugs to run
+        force: Whether to overwrite existing classifications
+    """
+    try:
+        import asyncio
+        
+        # Parse dates
+        start, end = parse_iso_dates(start_date, end_date)
+        
+        # Get posts in date range
+        posts_result = await session.execute(
+            select(Post.post_uid)
+            .where(and_(
+                Post.ingested_at >= start,
+                Post.ingested_at <= end
+            ))
+        )
+        post_uids = [row[0] for row in posts_result.fetchall()]
+        
+        if not post_uids:
+            return {
+                "message": "No posts found in date range",
+                "total_posts": 0,
+                "classified": 0,
+                "errors": []
+            }
+        
+        # Create a background task ID for tracking
+        import uuid
+        job_id = str(uuid.uuid4())
+        
+        # Store job info in memory (in production, use Redis or DB)
+        from app.services import classification_jobs
+        classification_jobs.create_job(job_id, len(post_uids))
+        
+        # Start background task (it will create its own session)
+        asyncio.create_task(
+            classification_jobs.run_batch_classification(
+                job_id=job_id,
+                post_uids=post_uids,
+                classifier_slugs=classifier_slugs,
+                force=force
+            )
+        )
+        
+        return {
+            "job_id": job_id,
+            "total_posts": len(post_uids),
+            "status": "started",
+            "message": f"Started batch classification for {len(post_uids)} posts"
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {str(e)}")
+    except Exception as e:
+        logger.error("Failed to start batch reclassification", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to start batch reclassification")
+
+
+@router.get("/batch-reclassify/{job_id}/status")
+async def get_batch_job_status(job_id: str):
+    """Get the status of a batch reclassification job"""
+    try:
+        from app.services import classification_jobs
+        
+        job_status = classification_jobs.get_job_status(job_id)
+        if not job_status:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        return job_status
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get job status", job_id=job_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get job status")
