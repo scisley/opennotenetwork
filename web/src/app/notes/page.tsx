@@ -8,7 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, ExternalLink, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Search, X, Filter } from 'lucide-react';
+import { ClassificationFilterPanel } from '@/components/filters/classification-filter-panel';
+import { ClassificationChipRow } from '@/components/classification-chip-row';
+import { FilterConfig } from '@/types/filters';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 const POSTS_PER_PAGE = 20;
 
@@ -22,10 +33,29 @@ export default function NotesPage() {
   const page = Math.max(0, currentPage - 1); // Convert to 0-based for API
   const offset = page * POSTS_PER_PAGE;
   
+  // Parse filters from URL
+  const filtersParam = searchParams.get('filters');
+  const [filters, setFilters] = useState<FilterConfig>(() => {
+    if (filtersParam) {
+      try {
+        return JSON.parse(decodeURIComponent(filtersParam));
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  });
+  
   // Local state for search input (for immediate UI feedback)
   const [searchInput, setSearchInput] = useState(searchQuery);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   
-  const { data: postsData, isLoading, error } = usePublicPosts(POSTS_PER_PAGE, offset, searchQuery);
+  const { data: postsData, isLoading, error } = usePublicPosts(
+    POSTS_PER_PAGE, 
+    offset, 
+    searchQuery,
+    filters
+  );
   
   const totalPages = postsData ? Math.ceil(postsData.total / POSTS_PER_PAGE) : 0;
   
@@ -34,8 +64,12 @@ export default function NotesPage() {
     setSearchInput(searchQuery);
   }, [searchQuery]);
   
-  // Function to update URL with search and page parameters
-  const updateUrl = (newSearch: string = searchQuery, newPage: number = 0) => {
+  // Function to update URL with search, page, and filter parameters
+  const updateUrl = (
+    newSearch: string = searchQuery, 
+    newPage: number = 0,
+    newFilters: FilterConfig = filters
+  ) => {
     const params = new URLSearchParams();
     
     if (newSearch.trim()) {
@@ -47,25 +81,47 @@ export default function NotesPage() {
       params.set('page', userPageNumber.toString());
     }
     
+    if (Object.keys(newFilters).length > 0) {
+      params.set('filters', encodeURIComponent(JSON.stringify(newFilters)));
+    }
+    
     const newUrl = params.toString() ? `/notes?${params.toString()}` : '/notes';
     router.push(newUrl);
   };
   
   // Function to navigate to a specific page
   const navigateToPage = (newPage: number) => {
-    updateUrl(searchQuery, newPage);
+    updateUrl(searchQuery, newPage, filters);
   };
   
   // Function to perform search
   const handleSearch = () => {
-    updateUrl(searchInput, 0); // Reset to first page when searching
+    updateUrl(searchInput, 0, filters); // Reset to first page when searching
   };
   
   // Function to clear search
   const clearSearch = () => {
     setSearchInput('');
-    updateUrl('', 0);
+    updateUrl('', 0, filters);
   };
+  
+  // Function to handle filter changes
+  const handleFiltersChange = (newFilters: FilterConfig) => {
+    setFilters(newFilters);
+    updateUrl(searchQuery, 0, newFilters); // Reset to first page when filtering
+    setIsFilterPanelOpen(false); // Close panel on mobile after applying
+  };
+  
+  // Count active filters
+  const activeFilterCount = Object.keys(filters).reduce((count, slug) => {
+    const filter = filters[slug];
+    let filterCount = 0;
+    if (filter.has_classification) filterCount++;
+    if (filter.values?.length) filterCount += filter.values.length;
+    if (filter.hierarchy?.level1) filterCount++;
+    if (filter.hierarchy?.level2) filterCount++;
+    return count + filterCount;
+  }, 0);
   
   // Handle Enter key in search input
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -107,13 +163,14 @@ export default function NotesPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Climate Posts</h1>
               <p className="text-gray-600 mt-2">
                 Browse posts from X.com Community Notes • {postsData?.total || 0} 
                 {searchQuery ? ` results for "${searchQuery}"` : ' posts total'}
+                {activeFilterCount > 0 && ` • ${activeFilterCount} filters active`}
               </p>
             </div>
             <Link href="/" className="text-blue-600 hover:text-blue-800">
@@ -121,9 +178,9 @@ export default function NotesPage() {
             </Link>
           </div>
           
-          {/* Search Box */}
-          <div className="flex items-center gap-2 max-w-md">
-            <div className="relative flex-1">
+          {/* Search and Filter Controls */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 type="text"
@@ -150,12 +207,55 @@ export default function NotesPage() {
                 Clear
               </Button>
             )}
+            
+            {/* Mobile Filter Button */}
+            <div className="lg:hidden">
+              <Sheet open={isFilterPanelOpen} onOpenChange={setIsFilterPanelOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {activeFilterCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-96 p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle>Classification Filters</SheetTitle>
+                    <SheetDescription>
+                      Filter posts by their classifications
+                    </SheetDescription>
+                  </SheetHeader>
+                  <ClassificationFilterPanel
+                    currentFilters={filters}
+                    onFiltersChange={handleFiltersChange}
+                    className="border-0 shadow-none rounded-none"
+                  />
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Posts List */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex gap-6">
+          {/* Desktop Filter Sidebar */}
+          <div className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-4">
+              <ClassificationFilterPanel
+                currentFilters={filters}
+                onFiltersChange={handleFiltersChange}
+              />
+            </div>
+          </div>
+
+          {/* Posts List */}
+          <div className="flex-1">
         {postsData?.posts.length === 0 ? (
           <div className="text-center py-12">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -224,9 +324,15 @@ export default function NotesPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-900 mb-4 line-clamp-3">
+                  <p className="text-gray-900 mb-3 line-clamp-3">
                     {post.text}
                   </p>
+                  {post.classifications && post.classifications.length > 0 && (
+                    <ClassificationChipRow 
+                      classifications={post.classifications}
+                      className="mb-3"
+                    />
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-blue-600 group-hover:text-blue-800 font-medium transition-colors">
                       View Details →
@@ -271,6 +377,8 @@ export default function NotesPage() {
             </Button>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
-from typing import List, Optional
+from sqlalchemy import select, and_, func, or_, exists
+from typing import List, Optional, Dict, Any
 import structlog
+import json
 
 from app.database import get_session
 from app.models import Post, DraftNote, Submission, Topic, PostTopic, Classification, Classifier
@@ -140,10 +141,33 @@ async def get_public_posts(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     search: Optional[str] = Query(None, max_length=200),
+    classification_filters: Optional[str] = Query(None, description="JSON-encoded classification filters"),
     session: AsyncSession = Depends(get_session)
 ):
-    """Get list of all posts for browsing (most recent first)"""
+    """
+    Get list of all posts for browsing (most recent first).
+    
+    Classification filters format:
+    {
+        "classifier_slug": {
+            "has_classification": true,  # Filter for posts that have this classification
+            "values": ["value1"],  # For single/multi select
+            "hierarchy": {  # For hierarchical classifiers
+                "level1": "value",
+                "level2": "value"
+            }
+        }
+    }
+    """
     try:
+        # Parse classification filters if provided
+        filters_dict = {}
+        if classification_filters:
+            try:
+                filters_dict = json.loads(classification_filters)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid classification_filters JSON")
+        
         # Base query for all posts with optional note information
         query = (
             select(Post, DraftNote, Submission, Topic)
@@ -154,6 +178,71 @@ async def get_public_posts(
             .outerjoin(Submission, DraftNote.draft_id == Submission.draft_id)
             .outerjoin(Topic, DraftNote.topic_id == Topic.topic_id)
         )
+        
+        # Add classification filters
+        for classifier_slug, filter_config in filters_dict.items():
+            # Create subquery for this classifier
+            classification_exists = exists().where(
+                and_(
+                    Classification.post_uid == Post.post_uid,
+                    Classification.classifier_slug == classifier_slug
+                )
+            )
+            
+            # Check if we want posts with this classification
+            if filter_config.get("has_classification"):
+                query = query.where(classification_exists)
+            
+            # Filter by specific values (for single/multi select)
+            if filter_config.get("values"):
+                values = filter_config["values"]
+                if isinstance(values, list) and values:
+                    # Create conditions for matching values
+                    value_conditions = []
+                    for value in values:
+                        # For single select: classification_data->>'value' = value
+                        # For multi select: classification_data->'values' @> [{"value": value}]
+                        value_conditions.append(
+                            exists().where(
+                                and_(
+                                    Classification.post_uid == Post.post_uid,
+                                    Classification.classifier_slug == classifier_slug,
+                                    or_(
+                                        Classification.classification_data["value"].astext == value,
+                                        # For multi-select, check if the values array contains an object with this value
+                                        Classification.classification_data["values"].contains([{"value": value}])
+                                    )
+                                )
+                            )
+                        )
+                    if value_conditions:
+                        query = query.where(or_(*value_conditions))
+            
+            # Filter by hierarchy (for hierarchical classifiers)
+            if filter_config.get("hierarchy"):
+                hierarchy = filter_config["hierarchy"]
+                hierarchy_conditions = []
+                
+                if hierarchy.get("level1"):
+                    hierarchy_conditions.append(
+                        Classification.classification_data["hierarchy"]["level1"].astext == hierarchy["level1"]
+                    )
+                
+                if hierarchy.get("level2"):
+                    hierarchy_conditions.append(
+                        Classification.classification_data["hierarchy"]["level2"].astext == hierarchy["level2"]
+                    )
+                
+                if hierarchy_conditions:
+                    query = query.where(
+                        exists().where(
+                            and_(
+                                Classification.post_uid == Post.post_uid,
+                                Classification.classifier_slug == classifier_slug,
+                                *hierarchy_conditions
+                            )
+                        )
+                    )
         
         # Add search filter if provided
         if search:
@@ -166,13 +255,47 @@ async def get_public_posts(
         result = await session.execute(query)
         rows = result.fetchall()
         
+        # Get all post UIDs for classification lookup
+        post_uids = [row[0].post_uid for row in rows]
+        
+        # Batch fetch classifications for all posts
+        classifications_by_post = {}
+        if post_uids:
+            classification_query = (
+                select(Classification, Classifier)
+                .join(Classifier, Classification.classifier_slug == Classifier.slug)
+                .where(Classification.post_uid.in_(post_uids))
+                .order_by(Classification.post_uid, Classifier.group_name, Classifier.slug)
+            )
+            classification_result = await session.execute(classification_query)
+            
+            for classification, classifier in classification_result.fetchall():
+                if classification.post_uid not in classifications_by_post:
+                    classifications_by_post[classification.post_uid] = []
+                
+                classifications_by_post[classification.post_uid].append(
+                    ClassificationPublicResponse(
+                        classifier_slug=classifier.slug,
+                        classifier_display_name=classifier.display_name,
+                        classifier_group=classifier.group_name,
+                        classification_type=classifier.output_schema.get("type", "unknown"),
+                        classification_data=classification.classification_data,
+                        output_schema=classifier.output_schema,
+                        created_at=classification.created_at,
+                        updated_at=classification.updated_at
+                    )
+                )
+        
         posts = []
         for post, draft_note, submission, topic in rows:
             # Check if post has a submitted note
             has_note = draft_note is not None and submission is not None
             submission_status = submission.submission_status if submission else None
             
-            posts.append(PostPublicResponse(
+            # Get classifications for this post
+            post_classifications = classifications_by_post.get(post.post_uid, [])
+            
+            posts.append(PostWithClassificationsResponse(
                 post_uid=post.post_uid,
                 platform=post.platform,
                 platform_post_id=post.platform_post_id,
@@ -184,11 +307,71 @@ async def get_public_posts(
                 submission_status=submission_status,
                 topic_slug=topic.slug if topic else None,
                 topic_display_name=topic.display_name if topic else None,
-                generated_at=draft_note.generated_at if draft_note else None
+                generated_at=draft_note.generated_at if draft_note else None,
+                classifications=post_classifications
             ))
         
-        # Get total count for pagination (efficient count query with same search filter)
+        # Get total count for pagination (efficient count query with same filters)
         count_query = select(func.count(Post.post_uid))
+        
+        # Apply same classification filters to count query
+        for classifier_slug, filter_config in filters_dict.items():
+            classification_exists = exists().where(
+                and_(
+                    Classification.post_uid == Post.post_uid,
+                    Classification.classifier_slug == classifier_slug
+                )
+            )
+            
+            if filter_config.get("has_classification"):
+                count_query = count_query.where(classification_exists)
+            
+            if filter_config.get("values"):
+                values = filter_config["values"]
+                if isinstance(values, list) and values:
+                    value_conditions = []
+                    for value in values:
+                        value_conditions.append(
+                            exists().where(
+                                and_(
+                                    Classification.post_uid == Post.post_uid,
+                                    Classification.classifier_slug == classifier_slug,
+                                    or_(
+                                        Classification.classification_data["value"].astext == value,
+                                        # For multi-select, check if the values array contains an object with this value
+                                        Classification.classification_data["values"].contains([{"value": value}])
+                                    )
+                                )
+                            )
+                        )
+                    if value_conditions:
+                        count_query = count_query.where(or_(*value_conditions))
+            
+            if filter_config.get("hierarchy"):
+                hierarchy = filter_config["hierarchy"]
+                hierarchy_conditions = []
+                
+                if hierarchy.get("level1"):
+                    hierarchy_conditions.append(
+                        Classification.classification_data["hierarchy"]["level1"].astext == hierarchy["level1"]
+                    )
+                
+                if hierarchy.get("level2"):
+                    hierarchy_conditions.append(
+                        Classification.classification_data["hierarchy"]["level2"].astext == hierarchy["level2"]
+                    )
+                
+                if hierarchy_conditions:
+                    count_query = count_query.where(
+                        exists().where(
+                            and_(
+                                Classification.post_uid == Post.post_uid,
+                                Classification.classifier_slug == classifier_slug,
+                                *hierarchy_conditions
+                            )
+                        )
+                    )
+        
         if search:
             search_term = f"%{search.strip()}%"
             count_query = count_query.where(Post.text.ilike(search_term))

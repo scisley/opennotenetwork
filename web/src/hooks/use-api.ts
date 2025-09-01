@@ -47,10 +47,11 @@ export function useHealthCheck() {
 export function usePublicPosts(
   limit = 50,
   offset = 0,
-  search?: string
+  search?: string,
+  classificationFilters?: Record<string, any>
 ) {
   return useQuery({
-    queryKey: ['public-posts', { limit, offset, search }],
+    queryKey: ['public-posts', { limit, offset, search, classificationFilters }],
     queryFn: async (): Promise<PostListResponse> => {
       const params = new URLSearchParams({
         limit: limit.toString(),
@@ -59,6 +60,10 @@ export function usePublicPosts(
 
       if (search && search.trim()) {
         params.append('search', search.trim());
+      }
+
+      if (classificationFilters && Object.keys(classificationFilters).length > 0) {
+        params.append('classification_filters', JSON.stringify(classificationFilters));
       }
 
       const response = await api.get(`${API_ENDPOINTS.public.posts}?${params}`);

@@ -3,6 +3,18 @@ from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 
+class ClassificationPublicResponse(BaseModel):
+    """Public response for a classification"""
+    classifier_slug: str
+    classifier_display_name: str
+    classifier_group: Optional[str]
+    classification_type: str  # single, multi, hierarchical
+    classification_data: Dict[str, Any]
+    output_schema: Dict[str, Any]  # For rendering UI
+    created_at: datetime
+    updated_at: datetime
+
+
 class NotePublicResponse(BaseModel):
     """Public response model for a community note"""
     post_uid: str
@@ -48,26 +60,14 @@ class PostPublicResponse(BaseModel):
     raw_json: Optional[Any] = None
 
 
-class PostListResponse(BaseModel):
-    """Response model for list of posts"""
-    posts: List[PostPublicResponse]
-    total: int
-    limit: int
-    offset: int
-
-
-class ClassificationPublicResponse(BaseModel):
-    """Public response for a classification"""
-    classifier_slug: str
-    classifier_display_name: str
-    classifier_group: Optional[str]
-    classification_type: str  # single, multi, hierarchical
-    classification_data: Dict[str, Any]
-    output_schema: Dict[str, Any]  # For rendering UI
-    created_at: datetime
-    updated_at: datetime
-
-
 class PostWithClassificationsResponse(PostPublicResponse):
     """Post response with classification data"""
     classifications: List[ClassificationPublicResponse] = []
+
+
+class PostListResponse(BaseModel):
+    """Response model for list of posts"""
+    posts: List[PostWithClassificationsResponse]
+    total: int
+    limit: int
+    offset: int
