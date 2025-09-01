@@ -289,51 +289,45 @@ export default function NotesPage() {
             {postsData?.posts.map((post) => (
               <Card 
                 key={post.post_uid} 
-                className="hover:shadow-md transition-shadow cursor-pointer group"
-                onClick={() => router.push(`/notes/${encodeURIComponent(post.post_uid)}`)}
+                className="hover:shadow-md transition-shadow cursor-pointer group relative"
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
-                        {post.author_handle ? `@${post.author_handle}` : 'Anonymous'}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">
-                        <span>{post.platform.toUpperCase()}</span>
-                        <span>•</span>
-                        <span>
-                          {post.created_at
-                            ? new Date(post.created_at).toLocaleDateString()
-                            : new Date(post.ingested_at).toLocaleDateString()}
-                        </span>
-                        {post.topic_display_name && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="secondary">{post.topic_display_name}</Badge>
-                          </>
+                <Link
+                  href={`/notes/${encodeURIComponent(post.post_uid)}`}
+                  className="block"
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
+                          {post.author_handle ? `@${post.author_handle}` : 'Anonymous'}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2 mt-1">
+                          <span>{post.platform.toUpperCase()}</span>
+                          <span>•</span>
+                          <span>
+                            {post.created_at
+                              ? new Date(post.created_at).toLocaleDateString()
+                              : new Date(post.ingested_at).toLocaleDateString()}
+                          </span>
+                          {post.topic_display_name && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="secondary">{post.topic_display_name}</Badge>
+                            </>
+                          )}
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {post.has_note && (
+                          <Badge variant={
+                            post.submission_status === 'accepted' ? 'default' : 'outline'
+                          }>
+                            {post.submission_status === 'accepted' ? 'Accepted Note' : 'Submitted Note'}
+                          </Badge>
                         )}
-                      </CardDescription>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {post.has_note && (
-                        <Badge variant={
-                          post.submission_status === 'accepted' ? 'default' : 'outline'
-                        }>
-                          {post.submission_status === 'accepted' ? 'Accepted Note' : 'Submitted Note'}
-                        </Badge>
-                      )}
-                      <Link
-                        href={`https://x.com/i/web/status/${post.platform_post_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-gray-600 z-10 relative"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 <CardContent>
                   <p className="text-gray-900 mb-3 line-clamp-3">
                     {post.text}
@@ -355,6 +349,17 @@ export default function NotesPage() {
                     )}
                   </div>
                 </CardContent>
+                </Link>
+                {/* External link positioned absolutely to avoid nesting */}
+                <a
+                  href={`https://x.com/i/web/status/${post.platform_post_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
               </Card>
             ))}
           </div>
