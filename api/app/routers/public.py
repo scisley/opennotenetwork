@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func, or_, exists
+from sqlalchemy import select, and_, func, or_, exists, text
 from typing import List, Optional, Dict, Any
 import structlog
 import json
@@ -224,13 +224,15 @@ async def get_public_posts(
                 hierarchy_conditions = []
                 
                 if hierarchy.get("level1"):
+                    # Check if the levels array contains an object with level=1 and the specified value
                     hierarchy_conditions.append(
-                        Classification.classification_data["hierarchy"]["level1"].astext == hierarchy["level1"]
+                        Classification.classification_data["levels"].contains([{"level": 1, "value": hierarchy["level1"]}])
                     )
                 
                 if hierarchy.get("level2"):
+                    # Check if the levels array contains an object with level=2 and the specified value
                     hierarchy_conditions.append(
-                        Classification.classification_data["hierarchy"]["level2"].astext == hierarchy["level2"]
+                        Classification.classification_data["levels"].contains([{"level": 2, "value": hierarchy["level2"]}])
                     )
                 
                 if hierarchy_conditions:
@@ -352,13 +354,15 @@ async def get_public_posts(
                 hierarchy_conditions = []
                 
                 if hierarchy.get("level1"):
+                    # Check if the levels array contains an object with level=1 and the specified value
                     hierarchy_conditions.append(
-                        Classification.classification_data["hierarchy"]["level1"].astext == hierarchy["level1"]
+                        Classification.classification_data["levels"].contains([{"level": 1, "value": hierarchy["level1"]}])
                     )
                 
                 if hierarchy.get("level2"):
+                    # Check if the levels array contains an object with level=2 and the specified value
                     hierarchy_conditions.append(
-                        Classification.classification_data["hierarchy"]["level2"].astext == hierarchy["level2"]
+                        Classification.classification_data["levels"].contains([{"level": 2, "value": hierarchy["level2"]}])
                     )
                 
                 if hierarchy_conditions:

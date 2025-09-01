@@ -70,6 +70,7 @@ export function usePublicPosts(
       return response.data;
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
+    placeholderData: (previousData) => previousData, // Keep showing previous data while fetching
   });
 }
 

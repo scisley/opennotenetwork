@@ -233,7 +233,12 @@ export function ClassificationFilterPanel({
       </ScrollArea>
 
       <div className="p-4 border-t bg-gray-50">
-        <Button onClick={applyFilters} className="w-full" size="sm">
+        <Button 
+          onClick={applyFilters} 
+          className="w-full" 
+          size="sm"
+          disabled={JSON.stringify(localFilters) === JSON.stringify(currentFilters)}
+        >
           <RefreshCw className="h-4 w-4 mr-2" />
           Apply Filters
         </Button>

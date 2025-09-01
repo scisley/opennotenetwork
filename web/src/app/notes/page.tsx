@@ -50,7 +50,7 @@ export default function NotesPage() {
   const [searchInput, setSearchInput] = useState(searchQuery);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   
-  const { data: postsData, isLoading, error } = usePublicPosts(
+  const { data: postsData, isLoading, error, isFetching } = usePublicPosts(
     POSTS_PER_PAGE, 
     offset, 
     searchQuery,
@@ -130,7 +130,8 @@ export default function NotesPage() {
     }
   };
   
-  if (isLoading) {
+  // Only show full page skeleton on initial load
+  if (isLoading && !postsData) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -199,11 +200,11 @@ export default function NotesPage() {
                 </button>
               )}
             </div>
-            <Button onClick={handleSearch} size="sm">
+            <Button onClick={handleSearch} size="sm" disabled={isFetching}>
               Search
             </Button>
             {searchQuery && (
-              <Button onClick={clearSearch} variant="outline" size="sm">
+              <Button onClick={clearSearch} variant="outline" size="sm" disabled={isFetching}>
                 Clear
               </Button>
             )}
@@ -256,6 +257,16 @@ export default function NotesPage() {
 
           {/* Posts List */}
           <div className="flex-1">
+        {/* Loading indicator at the top for subsequent fetches */}
+        {isFetching && (
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              <p className="text-blue-700 font-medium">Loading posts...</p>
+            </div>
+          </div>
+        )}
+        
         {postsData?.posts.length === 0 ? (
           <div className="text-center py-12">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -274,7 +285,7 @@ export default function NotesPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className={`space-y-6 transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
             {postsData?.posts.map((post) => (
               <Card 
                 key={post.post_uid} 
@@ -355,7 +366,7 @@ export default function NotesPage() {
             <Button
               variant="outline"
               onClick={() => navigateToPage(Math.max(0, page - 1))}
-              disabled={page === 0}
+              disabled={page === 0 || isFetching}
               className="flex items-center gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -369,7 +380,7 @@ export default function NotesPage() {
             <Button
               variant="outline"
               onClick={() => navigateToPage(Math.min(totalPages - 1, page + 1))}
-              disabled={page === totalPages - 1}
+              disabled={page === totalPages - 1 || isFetching}
               className="flex items-center gap-2"
             >
               Next
