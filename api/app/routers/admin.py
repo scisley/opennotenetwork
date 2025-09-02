@@ -6,7 +6,7 @@ import structlog
 import uuid
 
 from app.database import get_session
-from app.models import Post, DraftNote, Submission, Topic, PostTopic, User, Classifier, Classification
+from app.models import Post, DraftNote, Submission, Topic, PostTopic, User, Classifier, Classification, FactChecker, FactCheck
 from app.schemas.admin import (
     IngestResponse,
     GenerateDraftRequest, GenerateDraftResponse,
@@ -17,6 +17,7 @@ from app.schemas.admin import (
 )
 from app.services import ingestion, notegen, submission
 from app.services import classification
+from app.services import fact_checking
 from datetime import datetime
 
 def parse_iso_dates(start_date: str, end_date: str) -> tuple[datetime, datetime]:
@@ -1044,3 +1045,121 @@ async def get_batch_job_status(job_id: str):
     except Exception as e:
         logger.error("Failed to get job status", job_id=job_id, error=str(e))
         raise HTTPException(status_code=500, detail="Failed to get job status")
+
+
+# Fact Checker endpoints
+@router.get("/fact-checkers")
+async def list_fact_checkers(
+    session: AsyncSession = Depends(get_session)
+):
+    """List all available fact checkers"""
+    try:
+        fact_checkers = await fact_checking.list_available_fact_checkers(session)
+        return {"fact_checkers": fact_checkers}
+    except Exception as e:
+        logger.error("Failed to list fact checkers", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to list fact checkers")
+
+
+@router.post("/posts/{post_uid}/fact-check/{fact_checker_slug}")
+async def run_fact_check_on_post(
+    post_uid: str,
+    fact_checker_slug: str,
+    force: bool = False,
+    session: AsyncSession = Depends(get_session)
+):
+    """Run a specific fact checker on a post"""
+    try:
+        result = await fact_checking.run_fact_check(
+            post_uid=post_uid,
+            fact_checker_slug=fact_checker_slug,
+            session=session,
+            force=force
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to run fact check", 
+                    post_uid=post_uid, 
+                    fact_checker=fact_checker_slug,
+                    error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to run fact check")
+
+
+@router.get("/posts/{post_uid}/fact-checks")
+async def get_post_fact_checks(
+    post_uid: str,
+    session: AsyncSession = Depends(get_session)
+):
+    """Get all fact checks for a post"""
+    try:
+        fact_checks = await fact_checking.get_fact_checks_for_post(post_uid, session)
+        return {"fact_checks": fact_checks}
+    except Exception as e:
+        logger.error("Failed to get fact checks", post_uid=post_uid, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get fact checks")
+
+
+@router.get("/fact-checks/{fact_check_id}/status")
+async def get_fact_check_status(
+    fact_check_id: str,
+    session: AsyncSession = Depends(get_session)
+):
+    """Get the status of a fact check job"""
+    try:
+        status = await fact_checking.get_fact_check_status(fact_check_id, session)
+        if not status:
+            raise HTTPException(status_code=404, detail="Fact check not found")
+        return status
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get fact check status", fact_check_id=fact_check_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get fact check status")
+
+
+@router.delete("/posts/{post_uid}/fact-check/{fact_checker_slug}")
+async def delete_fact_check(
+    post_uid: str,
+    fact_checker_slug: str,
+    session: AsyncSession = Depends(get_session)
+):
+    """Delete a fact check result to allow rerunning"""
+    try:
+        # Get the fact checker
+        result = await session.execute(
+            select(FactChecker).where(FactChecker.slug == fact_checker_slug)
+        )
+        fact_checker = result.scalar_one_or_none()
+        
+        if not fact_checker:
+            raise HTTPException(status_code=404, detail="Fact checker not found")
+        
+        # Delete the fact check
+        result = await session.execute(
+            select(FactCheck).where(
+                and_(
+                    FactCheck.post_uid == post_uid,
+                    FactCheck.fact_checker_id == fact_checker.id
+                )
+            )
+        )
+        fact_check = result.scalar_one_or_none()
+        
+        if not fact_check:
+            raise HTTPException(status_code=404, detail="Fact check not found")
+        
+        await session.delete(fact_check)
+        await session.commit()
+        
+        return {"message": "Fact check deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to delete fact check", 
+                    post_uid=post_uid,
+                    fact_checker=fact_checker_slug,
+                    error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to delete fact check")

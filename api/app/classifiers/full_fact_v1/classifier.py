@@ -1,8 +1,12 @@
-"""Full Fact Classifier v1 - Academic Fact-Checking Annotation Schema"""
+"""Full Fact Classifier v1 - Academic Fact-Checking Annotation Schema
+
+See https://dl.acm.org/doi/10.1145/3412869
+"""
 
 from typing import Dict, Any, Optional, List, Literal
 from pydantic import BaseModel, Field
 from app.classifiers.base import BaseClassifier
+from app.classifiers.registry import register_classifier
 from app.config import settings
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -66,7 +70,9 @@ class FullFactClassification(BaseModel):
     )
 
 
+@register_classifier
 class FullFactV1(BaseClassifier):
+    slug = "full_fact_v1"
     """
     Full Fact Classifier for academic fact-checking annotation
     

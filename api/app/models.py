@@ -58,6 +58,7 @@ class Post(Base):
     classifications = relationship("Classification", back_populates="post", cascade="all, delete-orphan")
     draft_notes = relationship("DraftNote", back_populates="post", cascade="all, delete-orphan")
     submissions = relationship("Submission", back_populates="post", cascade="all, delete-orphan")
+    fact_checks = relationship("FactCheck", back_populates="post", cascade="all, delete-orphan")
     
     __table_args__ = (
         CheckConstraint("split_part(post_uid, '--', 1) = platform", name="post_uid_platform_consistent"),
@@ -200,4 +201,53 @@ class Submission(Base):
         CheckConstraint("submission_status IN ('submitted','accepted','rejected','unknown')", name="check_submission_status"),
         Index("idx_submissions_post", "post_uid"),
         Index("idx_submissions_status", "submission_status"),
+    )
+
+
+class FactChecker(Base):
+    __tablename__ = "fact_checkers"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slug = Column(String(100), unique=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    version = Column(String(50), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    configuration = Column(JSONB)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    fact_checks = relationship("FactCheck", back_populates="fact_checker", cascade="all, delete-orphan")
+
+
+class FactCheck(Base):
+    __tablename__ = "fact_checks"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    post_uid = Column(String(255), ForeignKey("posts.post_uid", ondelete="CASCADE"), nullable=False)
+    fact_checker_id = Column(UUID(as_uuid=True), ForeignKey("fact_checkers.id"), nullable=False)
+    result = Column(JSONB, nullable=False)
+    verdict = Column(String(50))
+    confidence = Column(Numeric(3, 2))
+    check_metadata = Column("metadata", JSONB)  # Use different Python name but same DB column
+    status = Column(String(50), nullable=False, default="pending")
+    error_message = Column(Text)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    post = relationship("Post", back_populates="fact_checks")
+    fact_checker = relationship("FactChecker", back_populates="fact_checks")
+    
+    __table_args__ = (
+        CheckConstraint("confidence >= 0 AND confidence <= 1", name="check_confidence_range"),
+        CheckConstraint("status IN ('pending','processing','completed','failed')", name="check_fact_check_status"),
+        CheckConstraint("verdict IN ('true','false','misleading','unverifiable','needs_context')", name="check_verdict_values"),
+        Index("idx_fact_checks_post_uid", "post_uid"),
+        Index("idx_fact_checks_fact_checker_id", "fact_checker_id"),
+        Index("idx_fact_checks_verdict", "verdict"),
+        Index("idx_fact_checks_status", "status"),
+        Index("idx_fact_checks_created_at", "created_at"),
+        Index("idx_fact_checks_post_checker", "post_uid", "fact_checker_id", unique=True),
     )

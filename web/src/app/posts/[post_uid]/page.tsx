@@ -11,6 +11,7 @@ import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { TwitterEmbed } from '@/components/twitter-embed';
 import { ClassificationChips } from '@/components/classification-chips';
 import { ClassificationAdmin } from '@/components/classification-admin';
+import { FactCheckViewer } from '@/components/fact-check-viewer';
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -155,45 +156,10 @@ export default function PostDetailPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Fact Check Status Card - Same height */}
-                  <Card className="h-full">
-                    <CardHeader>
-                      <CardTitle>Fact Check Status</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {post.has_note && post.full_body && post.concise_body ? (
-                        <div className="space-y-4">
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                            <p className="text-amber-900 text-sm font-medium mb-2">
-                              Community Note Submitted
-                            </p>
-                            <p className="text-gray-900 text-sm">
-                              {post.concise_body}
-                            </p>
-                          </div>
-                          {post.citations && post.citations.length > 0 && (
-                            <div>
-                              <h4 className="font-medium text-sm text-gray-700 mb-2">Citations</h4>
-                              <div className="space-y-1">
-                                {post.citations.map((citation: any, index: number) => (
-                                  <div key={index} className="text-xs text-gray-600">
-                                    {typeof citation === 'string' ? citation : JSON.stringify(citation)}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-8 text-center h-full flex flex-col items-center justify-center">
-                          <p className="text-gray-600 mb-2">No community note available yet</p>
-                          <p className="text-sm text-gray-500">
-                            This post is awaiting classification and fact-checking by our AI system.
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                  {/* Fact Check Viewer - Same height */}
+                  <div className="h-full">
+                    <FactCheckViewer postUid={postUid} />
+                  </div>
                 </div>
               );
             }
@@ -257,47 +223,58 @@ export default function PostDetailPage() {
                   </CardContent>
                 </Card>
 
-                {/* Fact Check Status for tweet chains */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Fact Check Status</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {post.has_note && post.full_body && post.concise_body ? (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                        <p className="text-amber-900 text-sm font-medium mb-2">
-                          Community Note Submitted
-                        </p>
-                        <p className="text-gray-900">
-                          {post.concise_body}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-                        <p className="text-gray-600 mb-2">No community note available yet</p>
-                        <p className="text-sm text-gray-500">
-                          This post is awaiting classification and fact-checking by our AI system.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                {/* Fact Check Viewer for tweet chains */}
+                <FactCheckViewer postUid={postUid} />
               </>
             );
           })()}
 
 
-          {/* Full Fact Check Details (if note exists) */}
-          {post.has_note && post.full_body && (
+          {/* Community Note Status (if exists) */}
+          {post.has_note && post.concise_body && (
             <Card>
               <CardHeader>
-                <CardTitle>Full Fact Check</CardTitle>
+                <CardTitle>Community Note Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose max-w-none">
-                  <div className="whitespace-pre-wrap text-gray-900">
-                    {post.full_body}
+                <div className="space-y-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-amber-900 text-sm font-medium">
+                        Community Note {post.submission_status === 'accepted' ? 'Accepted' : 'Submitted'}
+                      </p>
+                      <Badge variant={post.submission_status === 'accepted' ? 'default' : 'secondary'}>
+                        {post.submission_status || 'Submitted'}
+                      </Badge>
+                    </div>
+                    <p className="text-gray-900 text-sm mb-3">
+                      {post.concise_body}
+                    </p>
+                    {post.full_body && (
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-sm text-amber-700 hover:text-amber-800">
+                          View full fact check
+                        </summary>
+                        <div className="mt-3 pt-3 border-t border-amber-200">
+                          <div className="whitespace-pre-wrap text-gray-700 text-sm">
+                            {post.full_body}
+                          </div>
+                        </div>
+                      </details>
+                    )}
                   </div>
+                  {post.citations && post.citations.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-sm text-gray-700 mb-2">Citations</h4>
+                      <div className="space-y-1">
+                        {post.citations.map((citation: any, index: number) => (
+                          <div key={index} className="text-xs text-gray-600">
+                            {typeof citation === 'string' ? citation : JSON.stringify(citation)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

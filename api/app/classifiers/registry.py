@@ -1,54 +1,54 @@
-"""Classifier registry - maps slugs to implementations"""
+"""Classifier registry - dynamic registration via decorators"""
 
-from typing import Dict, Type, Optional
+from typing import Dict, Type, Optional, List
 from app.classifiers.base import BaseClassifier
-from app.classifiers.climate_misinformation_v1 import ClimateMisinformationV1
-from app.classifiers.topic_tagger_v1 import TopicTaggerV1
-from app.classifiers.science_domain_v1 import ScienceDomainV1
-from app.classifiers.full_fact_v1 import FullFactV1
-from app.classifiers.domain_classifier_v1 import DomainClassifierV1
 import structlog
 
 logger = structlog.get_logger()
 
 
-# Registry mapping slugs to classifier classes
-CLASSIFIER_REGISTRY: Dict[str, Type[BaseClassifier]] = {
-    "climate-misinformation-v1": ClimateMisinformationV1,
-    "topic-tagger-v1": TopicTaggerV1,
-    "science-domain-v1": ScienceDomainV1,
-    "full_fact_v1": FullFactV1,
-    "domain-classifier-v1": DomainClassifierV1,
-}
-
-
-def get_classifier(slug: str, output_schema: Dict, config: Optional[Dict] = None) -> BaseClassifier:
-    """
-    Get a classifier instance by slug
+class ClassifierRegistry:
+    """Registry for managing available classifiers"""
     
-    Args:
-        slug: The classifier slug
-        output_schema: Output schema from database
-        config: Optional configuration dictionary
+    _classifiers: Dict[str, Type[BaseClassifier]] = {}
+    
+    @classmethod
+    def register(cls, classifier_class: Type[BaseClassifier]) -> None:
+        """Register a classifier class"""
+        # Get slug from class attribute
+        slug = classifier_class.slug
         
-    Returns:
-        Classifier instance
+        if slug in cls._classifiers:
+            logger.warning(f"Classifier '{slug}' is being re-registered")
         
-    Raises:
-        ValueError: If classifier slug not found
-    """
-    if slug not in CLASSIFIER_REGISTRY:
-        raise ValueError(f"Unknown classifier slug: {slug}")
+        cls._classifiers[slug] = classifier_class
+        logger.info(f"Registered classifier: {slug}")
     
-    classifier_class = CLASSIFIER_REGISTRY[slug]
-    return classifier_class(slug=slug, output_schema=output_schema, config=config)
+    @classmethod
+    def get(cls, slug: str) -> Optional[Type[BaseClassifier]]:
+        """Get a classifier class by slug"""
+        return cls._classifiers.get(slug)
+    
+    @classmethod
+    def get_instance(cls, slug: str, output_schema: Dict, config: Optional[Dict] = None) -> Optional[BaseClassifier]:
+        """Get an instance of a classifier by slug"""
+        classifier_class = cls.get(slug)
+        if classifier_class:
+            return classifier_class(slug=slug, output_schema=output_schema, config=config)
+        return None
+    
+    @classmethod
+    def list_all(cls) -> List[str]:
+        """List all registered classifier slugs"""
+        return list(cls._classifiers.keys())
+    
+    @classmethod
+    def clear(cls) -> None:
+        """Clear all registered classifiers (mainly for testing)"""
+        cls._classifiers.clear()
 
 
-def list_available_classifiers() -> list[str]:
-    """
-    List all available classifier slugs
-    
-    Returns:
-        List of classifier slugs
-    """
-    return list(CLASSIFIER_REGISTRY.keys())
+def register_classifier(classifier_class: Type[BaseClassifier]) -> Type[BaseClassifier]:
+    """Decorator to automatically register a classifier"""
+    ClassifierRegistry.register(classifier_class)
+    return classifier_class

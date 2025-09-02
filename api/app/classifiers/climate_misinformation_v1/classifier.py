@@ -3,9 +3,12 @@
 from typing import Dict, Any, Optional
 import random
 from app.classifiers.base import BaseClassifier
+from app.classifiers.registry import register_classifier
 
 
+@register_classifier
 class ClimateMisinformationV1(BaseClassifier):
+    slug = "climate-misinformation-v1"
     """
     Detects climate change misinformation in posts
     

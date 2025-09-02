@@ -9,11 +9,9 @@ from typing import Dict, Any, Optional, List, Literal
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-import structlog
 from app.classifiers.base import BaseClassifier
+from app.classifiers.registry import register_classifier
 from app.config import settings
-
-logger = structlog.get_logger()
 
 # Pydantic model for structured output
 class DomainClassification(BaseModel):
@@ -48,7 +46,9 @@ class DomainClassification(BaseModel):
         max_items=10
     )
 
+@register_classifier
 class DomainClassifierV1(BaseClassifier):
+    slug = "domain-classifier-v1"
     """
     Domain Classifier
     """

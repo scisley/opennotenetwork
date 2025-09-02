@@ -102,3 +102,6 @@ lerna-debug.log*
 
 # Misc
 .env.production
+
+# None of my testing notebooks
+notebooks/

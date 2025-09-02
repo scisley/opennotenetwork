@@ -3,9 +3,12 @@
 from typing import Dict, Any, Optional
 import random
 from app.classifiers.base import BaseClassifier
+from app.classifiers.registry import register_classifier
 
 
+@register_classifier
 class ScienceDomainV1(BaseClassifier):
+    slug = "science-domain-v1"
     """
     Categorizes scientific claims by domain and accuracy
     

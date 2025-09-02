@@ -124,3 +124,77 @@ export function useClassifyPost(postUid: string) {
     retry: false, // Disable retry for POST mutations to prevent duplicate operations
   });
 }
+
+// Fact Checker API hooks
+export function useFactCheckers() {
+  return useQuery({
+    queryKey: ['fact-checkers'],
+    queryFn: async () => {
+      const response = await api.get('/api/admin/fact-checkers');
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+export function useFactChecks(postUid: string) {
+  return useQuery({
+    queryKey: ['fact-checks', postUid],
+    queryFn: async () => {
+      const response = await api.get(`/api/admin/posts/${postUid}/fact-checks`);
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 1, // 1 minute - shorter because fact checks can be processing
+    enabled: !!postUid,
+    refetchInterval: (data) => {
+      // Check if any fact checks are processing
+      const hasProcessing = data?.fact_checks?.some((check: any) => 
+        check.status === 'pending' || check.status === 'processing'
+      );
+      // Poll every 3 seconds if processing, otherwise stop
+      return hasProcessing ? 3000 : false;
+    },
+  });
+}
+
+export function useRunFactCheck(postUid: string) {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ factCheckerSlug, force = false }: { 
+      factCheckerSlug: string, 
+      force?: boolean 
+    }) => {
+      const params = new URLSearchParams();
+      params.append('force', force.toString());
+      
+      const response = await api.post(
+        `/api/admin/posts/${postUid}/fact-check/${factCheckerSlug}?${params.toString()}`
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate fact checks to refetch
+      queryClient.invalidateQueries({ queryKey: ['fact-checks', postUid] });
+    },
+    retry: false,
+  });
+}
+
+export function useDeleteFactCheck(postUid: string) {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (factCheckerSlug: string) => {
+      const response = await api.delete(
+        `/api/admin/posts/${postUid}/fact-check/${factCheckerSlug}`
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate fact checks to refetch
+      queryClient.invalidateQueries({ queryKey: ['fact-checks', postUid] });
+    },
+    retry: false,
+  });
+}

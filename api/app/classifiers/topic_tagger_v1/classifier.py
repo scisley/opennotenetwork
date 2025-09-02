@@ -3,9 +3,12 @@
 from typing import Dict, Any, Optional, List
 import random
 from app.classifiers.base import BaseClassifier
+from app.classifiers.registry import register_classifier
 
 
+@register_classifier
 class TopicTaggerV1(BaseClassifier):
+    slug = "topic-tagger-v1"
     """
     Tags posts with multiple relevant topics
     

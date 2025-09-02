@@ -8,7 +8,7 @@ import structlog
 import asyncio
 
 from app.models import Post, Classifier, Classification
-from app.classifiers import get_classifier
+from app.classifiers import ClassifierRegistry
 from sqlalchemy import delete, and_
 
 logger = structlog.get_logger()
@@ -146,11 +146,17 @@ async def classify_post(
                 continue
             
             # Get classifier instance with schema from database
-            classifier = get_classifier(
+            classifier = ClassifierRegistry.get_instance(
                 classifier_model.slug,
                 output_schema=classifier_model.output_schema,
                 config=classifier_model.config
             )
+            
+            if not classifier:
+                logger.warning("Classifier not found in registry", slug=classifier_model.slug)
+                results["failed"] += 1
+                results["errors"].append(f"Classifier {classifier_model.slug} not found in registry")
+                continue
             
             # Run classification
             classification_data = await classifier.classify(
