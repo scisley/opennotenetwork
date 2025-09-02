@@ -106,6 +106,73 @@ platform, post_id = parse_post_uid(post_uid) # ("x", "1234567890")
 - Currently stubbed services return mock data with proper schemas
 - External LangGraph agent integration point in `notegen.py`
 
+### Classifier Output Specification
+
+All classifiers must inherit from `BaseClassifier` and return one of three output formats from their `classify()` method:
+
+#### 1. Single Classification
+
+```python
+{
+    "type": "single",
+    "value": "category_name",        # Single category value
+    "confidence": 0.85                # Optional confidence score (0.0-1.0)
+}
+```
+
+#### 2. Multi Classification
+
+```python
+{
+    "type": "multi",
+    "values": [
+        {"value": "category1", "confidence": 0.9},
+        {"value": "category2", "confidence": 0.75},
+        {"value": "category3", "confidence": 0.6}
+    ]
+}
+```
+
+#### 3. Hierarchical Classification
+
+```python
+{
+    "type": "hierarchical",
+    "levels": [
+        {"level": 1, "value": "main_category", "confidence": 0.95},
+        {"level": 2, "value": "sub_category", "confidence": 0.8}
+    ]
+}
+```
+
+**Important Notes:**
+
+- The `type` field is **required** and must be one of: `"single"`, `"multi"`, or `"hierarchical"`
+- Values must match the choices defined in the classifier's database schema
+- Confidence scores are optional but recommended
+- The classifier wrapper validates output against the schema using `validate_output()`
+- For `multi` type, respect the `max_selections` limit from the schema
+
+### Classifier Code Structure
+
+Classifiers are organized in subfolders under `/api/app/classifiers/`:
+
+```
+classifiers/
+├── base.py                         # BaseClassifier abstract class
+├── registry.py                     # Maps slugs to classifier implementations
+├── domain_classifier_v1/
+│   ├── __init__.py                # Package exports
+│   └── classifier.py              # DomainClassifierV1 implementation
+├── climate_misinformation_v1/
+│   ├── __init__.py
+│   └── classifier.py
+└── [other classifiers...]
+```
+
+Each classifier folder can contain additional files as needed (helpers, prompts, utils, etc.).
+The `__init__.py` file should export the main classifier class for clean imports.
+
 ## Configuration
 
 ### Environment Variables (.env)

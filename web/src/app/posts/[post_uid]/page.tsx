@@ -44,7 +44,7 @@ export default function PostDetailPage() {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Post Not Found</h1>
             <p className="text-gray-600 mb-4">The post you're looking for doesn't exist or couldn't be loaded.</p>
-            <Link href="/notes" className="text-blue-600 hover:text-blue-800">
+            <Link href="/posts" className="text-blue-600 hover:text-blue-800">
               ← Back to Posts
             </Link>
           </div>
@@ -60,7 +60,7 @@ export default function PostDetailPage() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link
-              href="/notes"
+              href="/posts"
               className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

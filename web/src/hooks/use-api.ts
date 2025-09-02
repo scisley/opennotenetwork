@@ -5,7 +5,7 @@ import { PublicNotesResponse, PostListResponse, PostPublic, Classifier } from '@
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // 60 seconds for long-running classifiers
 });
 
 export function usePublicNotes(
@@ -121,5 +121,6 @@ export function useClassifyPost(postUid: string) {
       // Invalidate the post query to refetch with new classifications
       queryClient.invalidateQueries({ queryKey: ['post', postUid] });
     },
+    retry: false, // Disable retry for POST mutations to prevent duplicate operations
   });
 }

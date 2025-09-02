@@ -6,6 +6,7 @@ from app.classifiers.climate_misinformation_v1 import ClimateMisinformationV1
 from app.classifiers.topic_tagger_v1 import TopicTaggerV1
 from app.classifiers.science_domain_v1 import ScienceDomainV1
 from app.classifiers.full_fact_v1 import FullFactV1
+from app.classifiers.domain_classifier_v1 import DomainClassifierV1
 import structlog
 
 logger = structlog.get_logger()
@@ -17,6 +18,7 @@ CLASSIFIER_REGISTRY: Dict[str, Type[BaseClassifier]] = {
     "topic-tagger-v1": TopicTaggerV1,
     "science-domain-v1": ScienceDomainV1,
     "full_fact_v1": FullFactV1,
+    "domain-classifier-v1": DomainClassifierV1,
 }
 
 
@@ -50,18 +52,3 @@ def list_available_classifiers() -> list[str]:
         List of classifier slugs
     """
     return list(CLASSIFIER_REGISTRY.keys())
-
-
-def register_classifier(slug: str, classifier_class: Type[BaseClassifier]):
-    """
-    Register a new classifier (for dynamic loading)
-    
-    Args:
-        slug: The classifier slug
-        classifier_class: The classifier class
-    """
-    if slug in CLASSIFIER_REGISTRY:
-        logger.warning(f"Overwriting existing classifier: {slug}")
-    
-    CLASSIFIER_REGISTRY[slug] = classifier_class
-    logger.info(f"Registered classifier: {slug}")

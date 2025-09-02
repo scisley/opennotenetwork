@@ -85,7 +85,7 @@ export default function NotesPage() {
       params.set('filters', encodeURIComponent(JSON.stringify(newFilters)));
     }
     
-    const newUrl = params.toString() ? `/notes?${params.toString()}` : '/notes';
+    const newUrl = params.toString() ? `/posts?${params.toString()}` : '/posts';
     router.push(newUrl);
   };
   
@@ -292,7 +292,7 @@ export default function NotesPage() {
                 className="hover:shadow-md transition-shadow cursor-pointer group relative"
               >
                 <Link
-                  href={`/notes/${encodeURIComponent(post.post_uid)}`}
+                  href={`/posts/${encodeURIComponent(post.post_uid)}`}
                   className="block"
                 >
                   <CardHeader>

@@ -15,7 +15,7 @@ export default function Home() {
               <Badge variant="secondary" className="ml-3">Public Beta</Badge>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <Link href="/notes" className="text-gray-900 hover:text-gray-600">Notes</Link>
+              <Link href="/posts" className="text-gray-900 hover:text-gray-600">Posts</Link>
               <Link href="/admin/classifier-reruns" className="text-gray-900 hover:text-gray-600">Admin</Link>
               <Link href="/about" className="text-gray-500 hover:text-gray-900">About</Link>
             </nav>
@@ -83,7 +83,7 @@ export default function Home() {
         </div>
 
         <div className="mt-8 text-center">
-          <Link href="/notes">
+          <Link href="/posts">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
               Browse All Posts →
             </Button>
