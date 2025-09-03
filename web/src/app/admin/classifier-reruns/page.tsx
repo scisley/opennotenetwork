@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useClassifiers } from '@/hooks/use-api'
-import axios from 'axios'
-import { API_BASE_URL } from '@/lib/api'
+import { useAuthenticatedApi } from '@/lib/auth-axios'
 import { AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react'
 
 interface JobStatus {
@@ -52,6 +51,7 @@ export default function ClassifierRerunsPage() {
   const [error, setError] = useState<string | null>(null)
   
   const { data: classifiersData, isLoading: isLoadingClassifiers } = useClassifiers()
+  const authApi = useAuthenticatedApi()
 
   // Fetch post count when dates change
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function ClassifierRerunsPage() {
     setError(null)
     
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/admin/posts-date-range/count`, {
+      const response = await authApi.get('/api/admin/posts-date-range/count', {
         params: {
           start_date: dateRange.startDate.toISOString(),
           end_date: dateRange.endDate.toISOString()
@@ -98,8 +98,8 @@ export default function ClassifierRerunsPage() {
     if (!jobState.currentJob) return
     
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/api/admin/batch-reclassify/${jobState.currentJob.job_id}/status`
+      const response = await authApi.get(
+        `/api/admin/batch-reclassify/${jobState.currentJob.job_id}/status`
       )
       
       const newJob = {
@@ -178,8 +178,8 @@ export default function ClassifierRerunsPage() {
         return
       }
       
-      const response = await axios.post(
-        `${API_BASE_URL}/api/admin/batch-reclassify?${params.toString()}`,
+      const response = await authApi.post(
+        `/api/admin/batch-reclassify?${params.toString()}`,
         null
       )
       

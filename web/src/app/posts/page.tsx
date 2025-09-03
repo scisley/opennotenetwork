@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, ExternalLink, Search, X, Filter } from 'luci
 import { ClassificationFilterPanel } from '@/components/filters/classification-filter-panel';
 import { ClassificationChipRow } from '@/components/classification-chip-row';
 import { FilterConfig } from '@/types/filters';
+import { SiteHeader } from '@/components/site-header';
 import {
   Sheet,
   SheetContent,
@@ -162,7 +163,9 @@ export default function NotesPage() {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      <SiteHeader />
+      
+      {/* Page Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
@@ -174,9 +177,6 @@ export default function NotesPage() {
                 {activeFilterCount > 0 && ` • ${activeFilterCount} filters active`}
               </p>
             </div>
-            <Link href="/" className="text-blue-600 hover:text-blue-800">
-              ← Back to Home
-            </Link>
           </div>
           
           {/* Search and Filter Controls */}

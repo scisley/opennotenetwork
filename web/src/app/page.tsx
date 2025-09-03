@@ -3,25 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ApiStatus } from "@/components/api-status";
+import { SiteHeader } from "@/components/site-header";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">Climate Fact Checker</h1>
-              <Badge variant="secondary" className="ml-3">Public Beta</Badge>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/posts" className="text-gray-900 hover:text-gray-600">Posts</Link>
-              <Link href="/admin/classifier-reruns" className="text-gray-900 hover:text-gray-600">Admin</Link>
-              <Link href="/about" className="text-gray-500 hover:text-gray-900">About</Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

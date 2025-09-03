@@ -1,12 +1,39 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import { useAuth } from '@clerk/nextjs';
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/api';
 import { PublicNotesResponse, PostListResponse, PostPublic, Classifier } from '@/types/api';
 
+// Public API (no auth needed)
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000, // 60 seconds for long-running classifiers
 });
+
+// Hook to get authenticated API client
+function useAuthenticatedApi() {
+  const { getToken } = useAuth();
+  
+  const authApi = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 60000,
+  });
+
+  // Add auth token to requests
+  authApi.interceptors.request.use(async (config) => {
+    try {
+      const token = await getToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Failed to get auth token:', error);
+    }
+    return config;
+  });
+
+  return authApi;
+}
 
 export function usePublicNotes(
   status?: 'submitted' | 'accepted',
@@ -88,10 +115,12 @@ export function usePostById(postUid: string) {
 
 // Admin API hooks for classifiers
 export function useClassifiers() {
+  const authApi = useAuthenticatedApi();
+  
   return useQuery({
     queryKey: ['classifiers'],
     queryFn: async (): Promise<{ classifiers: Classifier[], total: number }> => {
-      const response = await api.get('/api/admin/classifiers');
+      const response = await authApi.get('/api/admin/classifiers');
       return response.data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -100,6 +129,7 @@ export function useClassifiers() {
 
 export function useClassifyPost(postUid: string) {
   const queryClient = useQueryClient();
+  const authApi = useAuthenticatedApi();
   
   return useMutation({
     mutationFn: async ({ classifierSlugs, force = true }: { 
@@ -112,7 +142,7 @@ export function useClassifyPost(postUid: string) {
       }
       params.append('force', force.toString());
       
-      const response = await api.post(
+      const response = await authApi.post(
         `/api/admin/posts/${postUid}/classify?${params.toString()}`
       );
       return response.data;
@@ -127,10 +157,12 @@ export function useClassifyPost(postUid: string) {
 
 // Fact Checker API hooks
 export function useFactCheckers() {
+  const authApi = useAuthenticatedApi();
+  
   return useQuery({
     queryKey: ['fact-checkers'],
     queryFn: async () => {
-      const response = await api.get('/api/admin/fact-checkers');
+      const response = await authApi.get('/api/admin/fact-checkers');
       return response.data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -138,10 +170,12 @@ export function useFactCheckers() {
 }
 
 export function useFactChecks(postUid: string) {
+  const authApi = useAuthenticatedApi();
+  
   return useQuery({
     queryKey: ['fact-checks', postUid],
     queryFn: async () => {
-      const response = await api.get(`/api/admin/posts/${postUid}/fact-checks`);
+      const response = await authApi.get(`/api/admin/posts/${postUid}/fact-checks`);
       return response.data;
     },
     staleTime: 1000 * 60 * 1, // 1 minute - shorter because fact checks can be processing
@@ -159,6 +193,7 @@ export function useFactChecks(postUid: string) {
 
 export function useRunFactCheck(postUid: string) {
   const queryClient = useQueryClient();
+  const authApi = useAuthenticatedApi();
   
   return useMutation({
     mutationFn: async ({ factCheckerSlug, force = false }: { 
@@ -168,7 +203,7 @@ export function useRunFactCheck(postUid: string) {
       const params = new URLSearchParams();
       params.append('force', force.toString());
       
-      const response = await api.post(
+      const response = await authApi.post(
         `/api/admin/posts/${postUid}/fact-check/${factCheckerSlug}?${params.toString()}`
       );
       return response.data;
@@ -183,10 +218,11 @@ export function useRunFactCheck(postUid: string) {
 
 export function useDeleteFactCheck(postUid: string) {
   const queryClient = useQueryClient();
+  const authApi = useAuthenticatedApi();
   
   return useMutation({
     mutationFn: async (factCheckerSlug: string) => {
-      const response = await api.delete(
+      const response = await authApi.delete(
         `/api/admin/posts/${postUid}/fact-check/${factCheckerSlug}`
       );
       return response.data;

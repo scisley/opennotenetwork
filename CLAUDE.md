@@ -79,9 +79,168 @@ the database.
 ### API Testing
 
 - Swagger UI available at `http://localhost:8000/api/docs`
-- Admin endpoints require `x-ingest-secret` or `x-reconcile-secret` headers
+- Admin endpoints require JWT authentication via Clerk
 - Test X.com auth: `POST /api/admin/test-x-auth`
 - Trigger ingestion: `POST /api/admin/ingest?batch_size=5&max_total_posts=15`
+
+## Authentication System
+
+The application uses Clerk for authentication with JWT tokens. The system provides role-based access control with automatic user synchronization to the database.
+
+### Frontend Authentication (`/web`)
+
+#### Setup and Configuration
+- **Clerk Provider**: Wraps the entire app in `layout.tsx`
+- **Middleware**: Located at `/web/src/middleware.ts` - protects `/admin` routes
+- **Environment Variables**:
+  ```bash
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+  CLERK_SECRET_KEY="sk_test_..."
+  ```
+
+#### Authentication Flow
+1. **Public Pages**: All non-admin pages are publicly accessible
+2. **Admin Routes**: Protected by middleware that checks:
+   - User is authenticated (has valid JWT)
+   - User has `admin` role in JWT metadata
+   - Redirects to sign-in or home page if unauthorized
+
+#### Making Authenticated API Calls
+```typescript
+// Use the authenticated API hook
+import { useAuthenticatedApi } from '@/lib/auth-axios';
+
+// In your component
+const authApi = useAuthenticatedApi();
+const response = await authApi.get('/api/admin/endpoint');
+
+// Or use pre-built hooks that include auth
+import { useClassifiers } from '@/hooks/use-api';
+const { data } = useClassifiers();
+```
+
+**Important**: Never use raw `axios` for admin endpoints. Always use `useAuthenticatedApi()` or the pre-built hooks.
+
+### Backend Authentication (`/api`)
+
+#### Setup and Configuration
+- **Library**: `fastapi-clerk-auth` for JWT verification
+- **JWKS URL**: Configured in settings for JWT validation
+- **Environment Variables**:
+  ```bash
+  CLERK_JWKS_URL="https://your-instance.clerk.accounts.dev/.well-known/jwks.json"
+  ```
+
+#### Authentication Flow
+1. **JWT Validation**: `ClerkHTTPBearer` validates the JWT signature
+2. **User Sync**: On each request, the system:
+   - Extracts user info from JWT (email, role)
+   - Creates or updates user in database
+   - Returns user object for request context
+
+#### Protected Endpoints
+```python
+from app.auth import require_admin, get_current_user
+
+# For admin-only endpoints
+@router.get("/admin-endpoint")
+async def admin_endpoint(
+    user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_session)
+):
+    # user is guaranteed to be admin
+    pass
+
+# For any authenticated user
+@router.get("/user-endpoint")
+async def user_endpoint(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    # user is any authenticated user
+    pass
+```
+
+### Clerk Dashboard Configuration
+
+#### Session Token Template
+Must be configured to include email and role:
+```json
+{
+  "email": "{{user.primary_email_address}}",
+  "metadata": "{{user.public_metadata}}"
+}
+```
+
+#### User Metadata
+Set user roles in public metadata:
+```json
+{
+  "role": "admin"  // or "viewer"
+}
+```
+
+### JWT Token Structure
+
+Clerk JWTs include:
+- `sub`: Clerk user ID
+- `email`: User's email address (configured in session token)
+- `metadata`: Contains role information
+- `exp`, `iat`, `nbf`: Token timing fields
+
+Tokens are short-lived (60 seconds) and automatically refreshed by Clerk SDK.
+
+### Database User Management
+
+Users are automatically synchronized to the database:
+- **First Access**: Creates user record with email, display_name, and role
+- **Subsequent Access**: Updates role if changed in Clerk
+- **User Table Fields**:
+  - `user_id`: UUID (internal)
+  - `email`: From JWT (unique)
+  - `display_name`: Defaults to email
+  - `role`: Either "admin" or "viewer"
+
+### Testing Authentication
+
+#### Get JWT Token for Testing
+```javascript
+// In browser console at http://localhost:3000
+await window.Clerk.session.getToken()
+```
+
+#### Test with Curl
+```bash
+# Test authentication
+curl -X GET http://localhost:8000/api/admin/auth-test \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Test admin access
+curl -X GET http://localhost:8000/api/admin/admin-test \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+#### Swagger UI Testing
+1. Go to http://localhost:8000/api/docs
+2. Click "Authorize" button
+3. Enter: `Bearer YOUR_TOKEN`
+4. All requests will include authentication
+
+### Common Issues and Solutions
+
+1. **403 Forbidden**: Check that:
+   - JWT includes email field (configure in Clerk Dashboard)
+   - User has admin role in public metadata
+   - Frontend is using `useAuthenticatedApi()` not raw `axios`
+
+2. **Token Expiry**: Tokens expire after 60 seconds
+   - Frontend auto-refreshes via Clerk SDK
+   - For testing, get fresh token with `getToken()`
+
+3. **User Not Created**: Ensure:
+   - Email is in JWT (check Clerk session token template)
+   - Database connection is working
+   - No transaction rollbacks occurring
 
 ## Key Technical Patterns
 
@@ -210,16 +369,16 @@ RECONCILE_SECRET="..."
 
 - **xurl**: Command-line tool for X.com API access (must be installed separately)
 - **PostgreSQL**: Via Neon cloud service with asyncpg driver
-- **Clerk**: Authentication service (integration stubbed)
+- **Clerk**: Authentication service with JWT-based auth
 - **LangGraph**: External fact-checking agent (integration stubbed)
 
 ## Service Status
 
 - ✅ **Ingestion**: Fully implemented with X.com API and auto-classification
 - ✅ **Classification**: LangGraph agents working for multiple topics
+- ✅ **Authentication**: Fully implemented with Clerk JWT and role-based access
 - 🟡 **Note Generation**: Stubbed (returns mock fact-check content)
 - 🟡 **Submission**: Stubbed (returns mock submission IDs)
-- 🟡 **Authentication**: Stubbed (bypassed for development)
 
 # Notes
 

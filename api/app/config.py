@@ -19,8 +19,7 @@ class Settings(BaseSettings):
     x_access_token_secret: str
     
     # Clerk Auth
-    clerk_publishable_key: str
-    clerk_secret_key: str
+    clerk_jwks_url: Optional[str] = "https://secure-tomcat-84.clerk.accounts.dev/.well-known/jwks.json"
     
     # External Services
     openai_api_key: str
@@ -31,10 +30,6 @@ class Settings(BaseSettings):
     langsmith_endpoint: Optional[str] = None
     langsmith_project: Optional[str] = None
     
-    # Scheduling secrets
-    ingest_secret: str
-    reconcile_secret: str
-    
     # CORS
     allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:3001"]
     allowed_hosts: List[str] = ["localhost", "127.0.0.1"]
@@ -42,6 +37,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env.local"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields in env file
 
 
 # Create global settings instance

@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.security import HTTPBearer
+from fastapi.openapi.utils import get_openapi
 import structlog
 from contextlib import asynccontextmanager
 
@@ -25,9 +27,36 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down OpenNoteNetwork API")
 
 
+def custom_openapi():
+    """Custom OpenAPI schema to add Bearer authentication"""
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title="OpenNoteNetwork API",
+        version="1.0.0",
+        description="Open-source AI-powered fact-checking system for Community Notes",
+        routes=app.routes,
+    )
+    
+    # Add security scheme for Bearer token
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Enter your Clerk JWT token. Get it from the frontend console with: await window.Clerk.session.getToken()"
+        }
+    }
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application"""
     
+    global app
     app = FastAPI(
         title="OpenNoteNetwork API",
         description="Open-source AI-powered fact-checking system for Community Notes",
@@ -56,6 +85,9 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(public.router, prefix="/api/public", tags=["public"])
     app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+    
+    # Set custom OpenAPI schema
+    app.openapi = custom_openapi
     
     @app.get("/health")
     async def health_check():

@@ -2,187 +2,168 @@
 Authentication and authorization using Clerk
 """
 import structlog
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
-import jwt
-import httpx
-from functools import lru_cache
+from fastapi_clerk_auth import ClerkConfig, ClerkHTTPBearer
+import uuid
 
-from app.config import settings
 from app.models import User
+from app.database import get_session
+from app.config import settings
 
 logger = structlog.get_logger()
 
+# Configure Clerk authentication
+clerk_config = ClerkConfig(
+    jwks_url=settings.clerk_jwks_url
+)
 
-@lru_cache(maxsize=1)
-def get_clerk_public_key():
-    """Get Clerk's public key for JWT verification (cached)"""
-    # In production, this should fetch the JWKS from Clerk
-    # For now, return a placeholder
-    return "CLERK_PUBLIC_KEY_PLACEHOLDER"
-
-
-async def verify_clerk_token(token: str) -> dict:
-    """
-    Verify Clerk JWT token
-    
-    This is a simplified implementation. In production, you should:
-    1. Fetch Clerk's JWKS endpoint
-    2. Verify the JWT signature
-    3. Check token expiration and issuer
-    """
-    try:
-        # Remove 'Bearer ' prefix if present
-        if token.startswith("Bearer "):
-            token = token[7:]
-        
-        # For development, we'll skip actual JWT verification
-        # and just decode without verification (UNSAFE for production)
-        decoded = jwt.decode(
-            token, 
-            options={"verify_signature": False}  # UNSAFE: Only for development
-        )
-        
-        logger.debug("Token decoded", user_id=decoded.get("sub"))
-        return decoded
-        
-    except jwt.InvalidTokenError as e:
-        logger.error("Invalid JWT token", error=str(e))
-        raise HTTPException(status_code=401, detail="Invalid token")
+# Create the auth guard
+clerk_auth_guard = ClerkHTTPBearer(config=clerk_config)
 
 
 async def get_current_user(
-    authorization: Optional[str],
-    session: AsyncSession
-) -> Optional[User]:
+    credentials: HTTPAuthorizationCredentials = Depends(clerk_auth_guard),
+    session: AsyncSession = Depends(get_session)
+) -> User:
     """
-    Get current user from authorization header
+    Get current user from JWT token and sync to database
     
     Args:
-        authorization: Authorization header value
+        credentials: JWT credentials from Clerk
         session: Database session
         
     Returns:
-        User object or None if not authenticated
+        User object from database
     """
-    if not authorization:
-        return None
+    # Extract known fields from Clerk JWT
+    decoded = credentials.decoded
+    clerk_user_id = decoded.get("sub")  # Clerk user ID (always present)
+    email = decoded.get("email")  # Email (configured in Clerk Dashboard session token)
     
-    try:
-        # Verify token with Clerk
-        token_data = await verify_clerk_token(authorization)
-        
-        # Get user ID from token
-        clerk_user_id = token_data.get("sub")
-        if not clerk_user_id:
-            return None
-        
-        # Get user email from token
-        email = token_data.get("email")
-        if not email:
-            return None
-        
-        # Find or create user in our database
-        result = await session.execute(
-            select(User).where(User.email == email)
+    # Get role from metadata (configured in Clerk Dashboard session token)
+    user_metadata = decoded.get("metadata", {})
+    role = user_metadata.get("role", "viewer")
+    
+    # Use email as display name if no other name is available
+    display_name = email or f"User {clerk_user_id}"
+    
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email not found in token. Ensure email is configured in Clerk Dashboard session token."
         )
-        user = result.scalar_one_or_none()
+    
+    # Find or create user in database
+    result = await session.execute(
+        select(User).where(User.email == email)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        logger.info("User not found, creating new user", email=email, role=role)
         
-        if not user:
-            # Create new user
-            user = User(
-                email=email,
-                display_name=token_data.get("name") or email,
-                role="viewer"  # Default role
-            )
-            session.add(user)
+        # Create new user
+        new_user_id = uuid.uuid4()
+        user = User(
+            user_id=new_user_id,
+            email=email,
+            clerk_user_id=clerk_user_id,
+            display_name=display_name,
+            role=role
+        )
+        session.add(user)
+        
+        try:
             await session.commit()
             await session.refresh(user)
-            
-            logger.info("Created new user", email=email, user_id=str(user.user_id))
-        
-        return user
-        
-    except Exception as e:
-        logger.error("Authentication failed", error=str(e))
-        return None
+            logger.info("Successfully created new user", 
+                       email=email, 
+                       user_id=str(user.user_id))
+        except Exception as e:
+            logger.error("Failed to create user", 
+                        email=email, 
+                        error=str(e))
+            await session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to create user: {str(e)}"
+            )
+    else:
+        # Update role if changed (role comes from Clerk metadata)
+        if user.role != role:
+            logger.info("Updating user role", 
+                       email=email, 
+                       old_role=user.role,
+                       new_role=role)
+            user.role = role
+            await session.commit()
+            await session.refresh(user)
+            logger.info("Role updated successfully", 
+                       email=email,
+                       updated_role=user.role)
+    
+    return user
 
 
-async def get_current_admin_user(
-    authorization: Optional[str],
-    session: AsyncSession
+async def require_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(clerk_auth_guard),
+    session: AsyncSession = Depends(get_session)
 ) -> User:
     """
-    Get current user and verify admin role
+    Require admin role for endpoint access
     
     Args:
-        authorization: Authorization header value
+        credentials: JWT credentials from Clerk
         session: Database session
         
     Returns:
         User object with admin role
         
     Raises:
-        HTTPException: If not authenticated or not admin
+        HTTPException: If user is not an admin
     """
-    # TEMPORARY: Bypass auth for development - return dummy admin user
-    # TODO: Remove this bypass before production
-    from app.models import User
-    import uuid
-    dummy_admin = User(
-        user_id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
-        email="admin@dev.local",
-        display_name="Dev Admin",
-        role="admin"
-    )
-    return dummy_admin
+    # Get the current user (this also validates the token and syncs to DB)
+    user = await get_current_user(credentials, session)
     
-    # Original auth code (disabled for development)
-    # user = await get_current_user(authorization, session)
-    # 
-    # if not user:
-    #     raise HTTPException(status_code=401, detail="Authentication required")
-    # 
-    # if user.role != "admin":
-    #     raise HTTPException(status_code=403, detail="Admin role required")
-    # 
-    # return user
+    # Check if user has admin role
+    if user.role != "admin":
+        logger.warning("Non-admin user attempted admin access", 
+                      email=user.email,
+                      role=user.role)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin permission required"
+        )
+    
+    return user
 
 
-async def promote_user_to_admin(email: str, session: AsyncSession) -> bool:
+async def get_optional_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
+        lambda: clerk_auth_guard(auto_error=False)
+    ),
+    session: AsyncSession = Depends(get_session)
+) -> Optional[User]:
     """
-    Promote a user to admin role (for initial setup)
+    Get current user if authenticated, otherwise return None
+    Used for endpoints that work with or without authentication
     
     Args:
-        email: User email to promote
+        credentials: Optional JWT credentials from Clerk
         session: Database session
         
     Returns:
-        True if successful, False if user not found
+        User object or None
     """
+    if not credentials:
+        return None
+    
     try:
-        from sqlalchemy import update
-        
-        result = await session.execute(
-            update(User)
-            .where(User.email == email)
-            .values(role="admin")
-            .returning(User.user_id)
-        )
-        
-        user_id = result.scalar_one_or_none()
-        
-        if user_id:
-            await session.commit()
-            logger.info("User promoted to admin", email=email, user_id=str(user_id))
-            return True
-        else:
-            logger.warning("User not found for promotion", email=email)
-            return False
-            
+        return await get_current_user(credentials, session)
     except Exception as e:
-        await session.rollback()
-        logger.error("Failed to promote user", email=email, error=str(e))
-        return False
+        logger.debug("Optional auth failed", error=str(e))
+        return None
