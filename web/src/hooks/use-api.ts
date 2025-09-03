@@ -180,7 +180,7 @@ export function useFactChecks(postUid: string) {
     },
     staleTime: 1000 * 60 * 1, // 1 minute - shorter because fact checks can be processing
     enabled: !!postUid,
-    refetchInterval: (data) => {
+    refetchInterval: (data: any) => {
       // Check if any fact checks are processing
       const hasProcessing = data?.fact_checks?.some((check: any) => 
         check.status === 'pending' || check.status === 'processing'

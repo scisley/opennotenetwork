@@ -31,8 +31,19 @@ class Settings(BaseSettings):
     langsmith_project: Optional[str] = None
     
     # CORS
-    allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:3001"]
-    allowed_hosts: List[str] = ["localhost", "127.0.0.1"]
+    allowed_origins: List[str] = [
+        "http://localhost:3000", 
+        "http://localhost:3001",
+        "https://opennotenetwork.com",
+        "https://www.opennotenetwork.com",
+        "https://opennotenetwork.vercel.app",  # Stable Vercel URL
+    ]
+    allowed_hosts: List[str] = [
+        "localhost", 
+        "127.0.0.1",
+        "opennotenetwork-api.fly.dev",
+        # "api.opennotenetwork.com",  # Add this when you set up the domain
+    ]
     
     class Config:
         env_file = ".env.local"

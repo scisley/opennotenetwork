@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "climate-fact-checker-api"
+name = "opennote-network-api"
 version = "0.1.0"
-description = "AI-powered climate fact-checking system for Community Notes"
-authors = ["Climate Fact Checker Team"]
+description = "AI-powered fact-checking network for Community Notes"
+authors = ["OpenNoteNetwork Team"]
 package-mode = false
 # readme = "README.md"
 

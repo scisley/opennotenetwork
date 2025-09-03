@@ -76,11 +76,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    if settings.production:
-        app.add_middleware(
-            TrustedHostMiddleware,
-            allowed_hosts=settings.allowed_hosts
-        )
+    # Disabled TrustedHostMiddleware - Fly.io proxy handles host validation
+    # if settings.production:
+    #     app.add_middleware(
+    #         TrustedHostMiddleware,
+    #         allowed_hosts=settings.allowed_hosts
+    #     )
 
     # Include routers
     app.include_router(public.router, prefix="/api/public", tags=["public"])

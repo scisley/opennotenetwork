@@ -55,7 +55,7 @@ export function FactCheckViewer({ postUid }: FactCheckViewerProps) {
   
   // Find fact checkers that haven't been run yet
   const availableCheckers = factCheckers.filter(
-    checker => !factChecks.some(check => check.fact_checker.slug === checker.slug)
+    (checker: any) => !factChecks.some((check: any) => check.fact_checker.slug === checker.slug)
   );
   
   if (checksLoading) {
@@ -241,7 +241,7 @@ export function FactCheckViewer({ postUid }: FactCheckViewerProps) {
             {availableCheckers.length > 0 && (
               <div className="space-y-2">
                 <p className="text-sm text-gray-500 mb-3">Available fact checkers:</p>
-                {availableCheckers.map((checker) => (
+                {availableCheckers.map((checker: any) => (
                   <div key={checker.slug} className="flex items-center justify-between max-w-md mx-auto">
                     <div className="text-left">
                       <p className="font-medium text-sm">{checker.name}</p>

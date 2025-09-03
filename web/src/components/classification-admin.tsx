@@ -50,11 +50,10 @@ export function ClassificationAdmin({ postUid, onClassified }: ClassificationAdm
   };
 
   const toggleClassifier = (slug: string) => {
-    setSelectedClassifiers(prev => 
-      prev.includes(slug) 
-        ? prev.filter(s => s !== slug)
-        : [...prev, slug]
-    );
+    const newClassifiers = selectedClassifiers.includes(slug) 
+      ? selectedClassifiers.filter(s => s !== slug)
+      : [...selectedClassifiers, slug];
+    setSelectedClassifiers(newClassifiers);
     setRunAll(false);
   };
 

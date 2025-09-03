@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePublicPosts } from "@/hooks/use-api";
@@ -37,7 +37,7 @@ import {
 
 const POSTS_PER_PAGE = 20;
 
-export default function NotesPage() {
+function NotesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -449,5 +449,13 @@ export default function NotesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NotesPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
+      <NotesPageContent />
+    </Suspense>
   );
 }
