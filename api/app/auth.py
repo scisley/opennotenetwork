@@ -142,10 +142,12 @@ async def require_admin(
     return user
 
 
+# Create optional auth guard
+clerk_auth_guard_optional = ClerkHTTPBearer(config=clerk_config, auto_error=False)
+
+
 async def get_optional_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
-        lambda: clerk_auth_guard(auto_error=False)
-    ),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(clerk_auth_guard_optional),
     session: AsyncSession = Depends(get_session)
 ) -> Optional[User]:
     """

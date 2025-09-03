@@ -242,6 +242,121 @@ curl -X GET http://localhost:8000/api/admin/admin-test \
    - Database connection is working
    - No transaction rollbacks occurring
 
+## API Endpoint Architecture
+
+### Design Philosophy
+
+The API uses a **resource-based URL pattern with role-adaptive responses**. The same endpoint returns different data based on the caller's authentication status and role, rather than having separate endpoints for different user types.
+
+### Endpoint Categories
+
+#### 1. Public-Only Endpoints (`/api/public/*`)
+- **Never require authentication**
+- Return the same data for everyone
+- Examples:
+  - `GET /api/public/notes` - Submitted/accepted community notes
+  - `GET /api/public/posts` - Public post feed with classifications
+
+#### 2. Resource Endpoints (`/api/*`)
+- **Adapt based on authentication**
+- Same URL, different data based on role
+- Examples:
+  - `GET /api/classifiers` - Returns:
+    - Guest users: Active classifiers only (same fields as admin)
+    - Admin users: All classifiers (active and inactive)
+  - `GET /api/classifiers/{slug}` - Returns:
+    - Guest users: Classifier details (only if active)
+    - Admin users: Classifier details (regardless of active status)
+
+#### 3. Admin-Only Endpoints (`/api/admin/*`)
+- **Require authentication and admin role**
+- Return 401/403 for unauthorized users
+- Examples:
+  - `POST /api/admin/ingest` - Trigger X.com ingestion
+  - `POST /api/admin/posts/{post_uid}/classify` - Run classifiers
+  - `POST /api/admin/classifiers` - Create new classifier
+  - All mutation operations (CREATE, UPDATE, DELETE)
+
+### Frontend API Client Architecture
+
+The frontend uses three patterns for API access:
+
+#### 1. Plain `api` Object
+```typescript
+const api = axios.create({ baseURL: API_BASE_URL });
+```
+- For endpoints that **never** need authentication
+- Used by: `usePublicNotes()`, `usePublicPosts()`, etc.
+
+#### 2. `useApi()` Hook
+```typescript
+function useApi() {
+  // Returns axios instance with conditional auth
+  // Includes token if user is logged in, continues without if not
+}
+```
+- For resource endpoints with **role-adaptive responses**
+- Automatically includes auth token if available
+- Silently continues without auth for guest users
+- Used by: `useClassifiers()`, future adaptive endpoints
+
+#### 3. `useAuthenticatedApi()` Hook
+```typescript
+function useAuthenticatedApi() {
+  // Returns axios instance that requires auth
+  // Throws error if no token available
+}
+```
+- For **admin-only** endpoints
+- Requires authentication token
+- Fails fast if user not authenticated
+- Used by: `useClassifyPost()`, `useFactCheckers()`, etc.
+
+### Role-Based Access Control
+
+#### Guest Users (Not Authenticated)
+- Access to all `/api/public/*` endpoints
+- Access to resource endpoints (`/api/*`) with limited data
+- Cannot access `/api/admin/*` endpoints
+
+#### Viewer Users (Authenticated, Non-Admin)
+- Same as guest users currently
+- Future: Could have additional privileges
+
+#### Admin Users (Authenticated, role: "admin")
+- Full access to all endpoints
+- Get enriched data from resource endpoints
+- Can perform all CRUD operations
+
+### Example: Classifiers Endpoint
+
+```python
+# /api/classifiers - Single endpoint, role-based filtering
+@router.get("/classifiers")
+async def get_classifiers(
+    current_user: Optional[User] = Depends(get_optional_user),
+    session: AsyncSession = Depends(get_session)
+):
+    query = select(Classifier)
+    
+    if not current_user or current_user.role != "admin":
+        # Guest/viewer: Only active classifiers
+        query = query.where(Classifier.is_active == True)
+    else:
+        # Admin: All classifiers (can filter by is_active param)
+        
+    # Everyone gets the same response schema (ClassifierPublicResponse)
+    # Only difference is which classifiers they can see
+```
+
+### Best Practices
+
+1. **Use resource-based URLs**: `/api/posts`, not `/api/public/posts` and `/api/admin/posts`
+2. **Let authentication determine capabilities**, not URLs
+3. **Keep mutations in admin endpoints**: Only GET operations should be adaptive
+4. **Use consistent response schemas**: Same fields for all users when possible
+5. **Document role-specific behavior** in endpoint docstrings
+
 ## Key Technical Patterns
 
 ### Ingestion Logic

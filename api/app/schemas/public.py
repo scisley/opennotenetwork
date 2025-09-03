@@ -3,6 +3,19 @@ from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 
+class ClassifierPublicResponse(BaseModel):
+    """Public response for a classifier (read-only)"""
+    classifier_id: str
+    slug: str
+    display_name: str
+    description: Optional[str]
+    group_name: Optional[str]
+    is_active: bool
+    output_schema: Dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
 class ClassificationPublicResponse(BaseModel):
     """Public response for a classification"""
     classifier_slug: str

@@ -1,29 +1,37 @@
-'use client';
+"use client";
 
 /* eslint-disable react/no-unescaped-entities */
-import { useState } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { usePostById } from '@/hooks/use-api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
-import { TwitterEmbed } from '@/components/twitter-embed';
-import { ClassificationChips } from '@/components/classification-chips';
-import { ClassificationAdmin } from '@/components/classification-admin';
-import { FactCheckViewer } from '@/components/fact-check-viewer';
+import { useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { usePostById } from "@/hooks/use-api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
+import { TwitterEmbed } from "@/components/twitter-embed";
+import { ClassificationChips } from "@/components/classification-chips";
+import { ClassificationAdmin } from "@/components/classification-admin";
+import { FactCheckViewer } from "@/components/fact-check-viewer";
 
 export default function PostDetailPage() {
   const params = useParams();
   const postUid = decodeURIComponent(params.post_uid as string);
-  
+  const { user } = useUser();
+
+  // Check if user is admin
+  const isAdmin = user?.publicMetadata?.role === "admin";
+
   // State for collapsible debug section
   const [showRawData, setShowRawData] = useState(false);
-  
+
   // Fetch the current post
-  const { data: post, isLoading: postLoading, error: postError } = usePostById(postUid);
-  
-  
+  const {
+    data: post,
+    isLoading: postLoading,
+    error: postError,
+  } = usePostById(postUid);
+
   if (postLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -37,14 +45,18 @@ export default function PostDetailPage() {
       </div>
     );
   }
-  
+
   if (postError || !post) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Post Not Found</h1>
-            <p className="text-gray-600 mb-4">The post you're looking for doesn't exist or couldn't be loaded.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Post Not Found
+            </h1>
+            <p className="text-gray-600 mb-4">
+              The post you're looking for doesn't exist or couldn't be loaded.
+            </p>
             <Link href="/posts" className="text-blue-600 hover:text-blue-800">
               ← Back to Posts
             </Link>
@@ -53,7 +65,7 @@ export default function PostDetailPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Header */}
@@ -67,7 +79,6 @@ export default function PostDetailPage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Posts
             </Link>
-            
           </div>
         </div>
       </div>
@@ -79,10 +90,14 @@ export default function PostDetailPage() {
           <div className="flex items-start justify-between">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full">
               <h1 className="text-2xl font-bold text-gray-900">
-                {post.author_handle ? `@${post.author_handle}` : 'Anonymous User'}
+                {post.author_handle
+                  ? `@${post.author_handle}`
+                  : "Anonymous User"}
               </h1>
               <div className="flex items-center gap-3 text-sm text-gray-600 mt-1 md:mt-0">
-                <span className="font-medium">{post.platform.toUpperCase()}</span>
+                <span className="font-medium">
+                  {post.platform.toUpperCase()}
+                </span>
                 <span>•</span>
                 <span>
                   {post.created_at
@@ -98,10 +113,16 @@ export default function PostDetailPage() {
                 {post.has_note && (
                   <>
                     <span>•</span>
-                    <Badge variant={
-                      post.submission_status === 'accepted' ? 'default' : 'outline'
-                    }>
-                      {post.submission_status === 'accepted' ? 'Accepted Note' : 'Submitted Note'}
+                    <Badge
+                      variant={
+                        post.submission_status === "accepted"
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      {post.submission_status === "accepted"
+                        ? "Accepted Note"
+                        : "Submitted Note"}
                     </Badge>
                   </>
                 )}
@@ -119,19 +140,27 @@ export default function PostDetailPage() {
             // Extract referenced tweets
             const rawJson = post.raw_json as any;
             const referencedTweets = rawJson?.post?.referenced_tweets || [];
-            const replyToTweet = referencedTweets.find((ref: any) => ref.type === 'replied_to');
-            const quotedTweet = referencedTweets.find((ref: any) => ref.type === 'quoted');
-            
+            const replyToTweet = referencedTweets.find(
+              (ref: any) => ref.type === "replied_to"
+            );
+            const quotedTweet = referencedTweets.find(
+              (ref: any) => ref.type === "quoted"
+            );
+
             // Find referenced tweets in includes
             let parentTweet = null;
             let quotedTweetData = null;
-            
+
             if (rawJson?.includes?.tweets) {
               if (replyToTweet) {
-                parentTweet = rawJson.includes.tweets.find((tweet: any) => tweet.id === replyToTweet.id);
+                parentTweet = rawJson.includes.tweets.find(
+                  (tweet: any) => tweet.id === replyToTweet.id
+                );
               }
               if (quotedTweet) {
-                quotedTweetData = rawJson.includes.tweets.find((tweet: any) => tweet.id === quotedTweet.id);
+                quotedTweetData = rawJson.includes.tweets.find(
+                  (tweet: any) => tweet.id === quotedTweet.id
+                );
               }
             }
 
@@ -148,7 +177,7 @@ export default function PostDetailPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="border-l-4 border-l-blue-500 bg-blue-50/30 rounded-lg p-3">
-                        <TwitterEmbed 
+                        <TwitterEmbed
                           postId={post.platform_post_id}
                           author={post.author_handle || undefined}
                         />
@@ -170,7 +199,11 @@ export default function PostDetailPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>
-                      {parentTweet ? "Reply Chain" : quotedTweetData ? "Quote Tweet - Eligible for Note" : "Tweet - Eligible for Note"}
+                      {parentTweet
+                        ? "Reply Chain"
+                        : quotedTweetData
+                        ? "Quote Tweet - Eligible for Note"
+                        : "Tweet - Eligible for Note"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -182,7 +215,7 @@ export default function PostDetailPage() {
                             <span>Replying to</span>
                           </div>
                           <div className="border-l-4 border-l-gray-300 bg-gray-50/30 rounded-lg p-3">
-                            <TwitterEmbed 
+                            <TwitterEmbed
                               postId={parentTweet.id}
                               author={parentTweet.author_id}
                             />
@@ -198,7 +231,7 @@ export default function PostDetailPage() {
                           </div>
                         )}
                         <div className="border-l-4 border-l-blue-500 bg-blue-50/30 rounded-lg p-3">
-                          <TwitterEmbed 
+                          <TwitterEmbed
                             postId={post.platform_post_id}
                             author={post.author_handle || undefined}
                           />
@@ -212,7 +245,7 @@ export default function PostDetailPage() {
                             <span>Quoted Tweet</span>
                           </div>
                           <div className="border-l-4 border-l-green-500 bg-green-50/30 rounded-lg p-3">
-                            <TwitterEmbed 
+                            <TwitterEmbed
                               postId={quotedTweetData.id}
                               author={quotedTweetData.author_id}
                             />
@@ -229,7 +262,6 @@ export default function PostDetailPage() {
             );
           })()}
 
-
           {/* Community Note Status (if exists) */}
           {post.has_note && post.concise_body && (
             <Card>
@@ -241,10 +273,19 @@ export default function PostDetailPage() {
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-amber-900 text-sm font-medium">
-                        Community Note {post.submission_status === 'accepted' ? 'Accepted' : 'Submitted'}
+                        Community Note{" "}
+                        {post.submission_status === "accepted"
+                          ? "Accepted"
+                          : "Submitted"}
                       </p>
-                      <Badge variant={post.submission_status === 'accepted' ? 'default' : 'secondary'}>
-                        {post.submission_status || 'Submitted'}
+                      <Badge
+                        variant={
+                          post.submission_status === "accepted"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {post.submission_status || "Submitted"}
                       </Badge>
                     </div>
                     <p className="text-gray-900 text-sm mb-3">
@@ -265,11 +306,15 @@ export default function PostDetailPage() {
                   </div>
                   {post.citations && post.citations.length > 0 && (
                     <div>
-                      <h4 className="font-medium text-sm text-gray-700 mb-2">Citations</h4>
+                      <h4 className="font-medium text-sm text-gray-700 mb-2">
+                        Citations
+                      </h4>
                       <div className="space-y-1">
                         {post.citations.map((citation: any, index: number) => (
                           <div key={index} className="text-xs text-gray-600">
-                            {typeof citation === 'string' ? citation : JSON.stringify(citation)}
+                            {typeof citation === "string"
+                              ? citation
+                              : JSON.stringify(citation)}
                           </div>
                         ))}
                       </div>
@@ -280,23 +325,27 @@ export default function PostDetailPage() {
             </Card>
           )}
 
-          {/* Admin Classification Control */}
-          <ClassificationAdmin 
-            postUid={postUid} 
-            onClassified={() => {
-              // The mutation in ClassificationAdmin already invalidates the query
-              // This is just for any additional actions we might want
-            }}
-          />
+          {/* Admin Classification Control - Only show for admin users */}
+          {isAdmin && (
+            <ClassificationAdmin
+              postUid={postUid}
+              onClassified={() => {
+                // The mutation in ClassificationAdmin already invalidates the query
+                // This is just for any additional actions we might want
+              }}
+            />
+          )}
 
           {/* Debug Section - Raw JSON Data - At the very bottom */}
           <Card className="mt-8 border-dashed">
             <CardHeader>
-              <CardTitle 
+              <CardTitle
                 className="flex items-center justify-between cursor-pointer hover:text-gray-600"
                 onClick={() => setShowRawData(!showRawData)}
               >
-                <span className="text-sm font-medium text-gray-700">Debug: Raw X.com JSON Data</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Debug: Raw X.com JSON Data
+                </span>
                 {showRawData ? (
                   <ChevronUp className="w-4 h-4" />
                 ) : (
@@ -308,19 +357,30 @@ export default function PostDetailPage() {
               <CardContent>
                 <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-96">
                   <pre className="text-green-400 text-xs font-mono whitespace-pre-wrap">
-                    {post.raw_json ? 
-                      JSON.stringify(post.raw_json, null, 2) :
-                      'No raw JSON data available'
-                    }
+                    {post.raw_json
+                      ? JSON.stringify(post.raw_json, null, 2)
+                      : "No raw JSON data available"}
                   </pre>
                 </div>
                 <div className="mt-3 text-xs text-gray-500 space-y-1">
-                  <p><strong>Post UID:</strong> {post.post_uid}</p>
-                  <p><strong>Platform:</strong> {post.platform}</p>
-                  <p><strong>Platform Post ID:</strong> {post.platform_post_id}</p>
-                  <p><strong>Ingested:</strong> {new Date(post.ingested_at).toLocaleString()}</p>
+                  <p>
+                    <strong>Post UID:</strong> {post.post_uid}
+                  </p>
+                  <p>
+                    <strong>Platform:</strong> {post.platform}
+                  </p>
+                  <p>
+                    <strong>Platform Post ID:</strong> {post.platform_post_id}
+                  </p>
+                  <p>
+                    <strong>Ingested:</strong>{" "}
+                    {new Date(post.ingested_at).toLocaleString()}
+                  </p>
                   {post.created_at && (
-                    <p><strong>Created:</strong> {new Date(post.created_at).toLocaleString()}</p>
+                    <p>
+                      <strong>Created:</strong>{" "}
+                      {new Date(post.created_at).toLocaleString()}
+                    </p>
                   )}
                 </div>
               </CardContent>

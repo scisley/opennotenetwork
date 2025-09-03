@@ -7,7 +7,7 @@ import structlog
 from contextlib import asynccontextmanager
 
 from app.database import init_db
-from app.routers import public, admin
+from app.routers import public, admin, resources
 from app.config import settings
 
 
@@ -84,6 +84,7 @@ def create_app() -> FastAPI:
     #     )
 
     # Include routers
+    app.include_router(resources.router, prefix="/api", tags=["resources"])
     app.include_router(public.router, prefix="/api/public", tags=["public"])
     app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
     
