@@ -10,7 +10,7 @@ export function SiteHeader() {
         <div className="flex justify-between items-center py-6">
           <div className="flex items-center">
             <Link href="/">
-              <h1 className="text-2xl font-bold text-gray-900">Climate Fact Checker</h1>
+              <h1 className="text-2xl font-bold text-gray-900">OpenNoteNetwork</h1>
             </Link>
             <Badge variant="secondary" className="ml-3">Public Beta</Badge>
           </div>

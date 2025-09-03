@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Climate Fact Checker",
-  description: "AI-powered climate fact-checking for Community Notes",
+  title: "OpenNoteNetwork",
+  description: "AI-powered fact-checking network for Community Notes",
 };
 
 export default function RootLayout({

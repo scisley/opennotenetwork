@@ -12,10 +12,10 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Climate Community Notes</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">OpenNoteNetwork Community Notes</h2>
           <p className="text-gray-600 max-w-2xl">
-            AI-powered fact-checking for climate-related posts on social media. 
-            View submitted and accepted Community Notes with detailed fact-checks and scientific sources.
+            AI-powered fact-checking network for posts on social media. 
+            View submitted and accepted Community Notes with detailed fact-checks and reliable sources.
           </p>
         </div>
 
@@ -41,7 +41,7 @@ export default function Home() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Topics
-                <Badge variant="outline">Climate Focus</Badge>
+                <Badge variant="outline">Multi-Domain</Badge>
               </CardTitle>
               <CardDescription>
                 Browse notes by topic area
@@ -88,7 +88,7 @@ export default function Home() {
             <div className="space-y-2">
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-semibold mx-auto">2</div>
               <h4 className="font-medium">Classification</h4>
-              <p className="text-gray-600">AI identifies climate-related content for fact-checking</p>
+              <p className="text-gray-600">AI identifies content across multiple domains for fact-checking</p>
             </div>
             <div className="space-y-2">
               <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold mx-auto">3</div>
@@ -107,7 +107,7 @@ export default function Home() {
       <footer className="bg-white border-t mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-500 text-sm">
-            <p>Climate Fact Checker • Open Source Framework for Community Notes</p>
+            <p>OpenNoteNetwork • Open Source Framework for Community Notes</p>
             <p className="mt-2">Backend API running on localhost:8000</p>
           </div>
         </div>
