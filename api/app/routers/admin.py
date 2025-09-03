@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Header, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_, func
 from typing import Optional, List
@@ -25,67 +25,164 @@ def parse_iso_dates(start_date: str, end_date: str) -> tuple[datetime, datetime]
     start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
     end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
     return start, end
-from app.auth import get_current_admin_user
+from app.auth import require_admin, get_current_user
 
 logger = structlog.get_logger()
 
 router = APIRouter()
 
 
-# Middleware for admin authentication
-async def verify_admin_auth(
-    authorization: Optional[str] = Header(None),
-    session: AsyncSession = Depends(get_session)
-) -> User:
-    """Verify admin authentication"""
-    try:
-        user = await get_current_admin_user(authorization, session)
-        return user
-    except Exception as e:
-        logger.error("Admin authentication failed", error=str(e))
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-
-# Ingestion endpoints
-@router.post("/ingest", response_model=IngestResponse)
-async def trigger_ingestion(
-    batch_size: int = 50,  # Posts per API request
-    max_total_posts: int = 500,  # Maximum total posts to process  
-    duplicate_threshold: float = 0.7,  # Stop if this ratio are duplicates
-    auto_classify: bool = True,  # Automatically classify new posts
-    classifier_slugs: Optional[List[str]] = Query(None),  # Specific classifiers to run
-    x_ingest_secret: Optional[str] = Header(None),
-    session: AsyncSession = Depends(get_session)
+# Debug endpoint to test authentication
+@router.get("/auth-test")
+async def test_authentication(
+    current_user: User = Depends(get_current_user)
 ):
-    """Trigger ingestion of Community Note requests from X.com"""
-    # Verify ingest secret for automated triggers
-    from app.config import settings
-    if x_ingest_secret != settings.ingest_secret:
-        raise HTTPException(status_code=401, detail="Invalid ingest secret")
+    """Test endpoint to verify authentication is working"""
+    return {
+        "authenticated": True,
+        "user_id": str(current_user.user_id),
+        "email": current_user.email,
+        "role": current_user.role,
+        "display_name": current_user.display_name
+    }
+
+
+@router.get("/admin-test")
+async def test_admin_authentication(
+    current_user: User = Depends(require_admin)
+):
+    """Test endpoint to verify admin authentication is working"""
+    return {
+        "authenticated": True,
+        "is_admin": True,
+        "user_id": str(current_user.user_id),
+        "email": current_user.email,
+        "role": current_user.role
+    }
+
+
+@router.get("/users-check")
+async def check_users_table(
+    session: AsyncSession = Depends(get_session),
+    _: User = Depends(require_admin)
+):
+    """Check all users in the database"""
+    result = await session.execute(
+        select(User).order_by(User.created_at.desc())
+    )
+    users = result.scalars().all()
     
-    try:
-        result = await ingestion.run_ingestion(
-            session, 
-            batch_size=batch_size,
-            max_total_posts=max_total_posts,
-            duplicate_threshold=duplicate_threshold,
-            auto_classify=auto_classify,
-            classifier_slugs=classifier_slugs
-        )
-        return IngestResponse(
-            added=result["added"],
-            skipped=result["skipped"],
-            classified=result.get("classified", 0),
-            errors=result.get("errors", []),
-            classification_errors=result.get("classification_errors", [])
-        )
-    except Exception as e:
-        logger.error("Ingestion failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Ingestion failed")
+    return {
+        "total_users": len(users),
+        "users": [
+            {
+                "user_id": str(user.user_id),
+                "email": user.email,
+                "display_name": user.display_name,
+                "role": user.role,
+                "created_at": user.created_at.isoformat() if user.created_at else None
+            }
+            for user in users
+        ]
+    }
+
+
+# Ingestion with job tracking
+ingestion_jobs = {}  # Store job status in memory
+
+@router.post("/ingest")
+async def trigger_ingestion(
+    batch_size: int = 50,
+    max_total_posts: int = 500,
+    duplicate_threshold: float = 0.7,
+    auto_classify: bool = True,
+    classifier_slugs: Optional[List[str]] = Query(None),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
+):
+    """Trigger async ingestion with job tracking"""
+    import asyncio
+    from datetime import datetime
+    
+    job_id = str(uuid.uuid4())
+    
+    # Initialize job status
+    ingestion_jobs[job_id] = {
+        "job_id": job_id,
+        "status": "running",
+        "started_at": datetime.utcnow().isoformat(),
+        "batch_size": batch_size,
+        "max_total_posts": max_total_posts,
+        "new_posts": 0,
+        "updated_posts": 0,
+        "posts_processed": 0,
+        "duplicate_ratio": 0.0,
+        "current_batch": 0,
+        "message": "Starting ingestion...",
+        "errors": []
+    }
+    
+    async def run_ingestion_job():
+        try:
+            # Update status to indicate we're fetching
+            ingestion_jobs[job_id]["message"] = "Fetching posts from X.com..."
+            
+            result = await ingestion.run_ingestion(
+                session,
+                batch_size=batch_size,
+                max_total_posts=max_total_posts,
+                duplicate_threshold=duplicate_threshold,
+                auto_classify=auto_classify,
+                classifier_slugs=classifier_slugs
+            )
+            
+            # Update job with results
+            ingestion_jobs[job_id].update({
+                "status": "completed",
+                "completed_at": datetime.utcnow().isoformat(),
+                "new_posts": result.get("new_posts", result.get("added", 0)),
+                "updated_posts": result.get("updated_posts", 0),
+                "posts_processed": result.get("posts_processed", result.get("added", 0) + result.get("skipped", 0)),
+                "duplicate_ratio": result.get("duplicate_ratio", 0.0),
+                "message": result.get("message", "Ingestion completed successfully")
+            })
+        except Exception as e:
+            logger.error("Async ingestion failed", job_id=job_id, error=str(e))
+            ingestion_jobs[job_id].update({
+                "status": "failed",
+                "completed_at": datetime.utcnow().isoformat(),
+                "message": f"Ingestion failed: {str(e)}",
+                "errors": [str(e)]
+            })
+    
+    # Start the job in the background
+    asyncio.create_task(run_ingestion_job())
+    
+    logger.info("Started async ingestion job", job_id=job_id)
+    
+    return {
+        "job_id": job_id,
+        "status": "started",
+        "message": "Ingestion job started"
+    }
+
+
+@router.get("/ingest/{job_id}/status")
+async def get_ingestion_job_status(
+    job_id: str,
+    user: User = Depends(require_admin)
+):
+    """Get the status of an async ingestion job"""
+    if job_id not in ingestion_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    return ingestion_jobs[job_id]
 
 
 @router.post("/test-x-auth")
-async def test_x_auth():
+async def test_x_auth(
+    user: User = Depends(require_admin)
+):
     """Test X.com API authentication with a simple endpoint"""
     from app.services.ingestion import XAPIClient
     from app.config import settings
@@ -124,7 +221,7 @@ async def add_manual_topic(
     post_uid: str,
     topic_slug: str,
     confidence: Optional[float] = None,
-    user: User = Depends(verify_admin_auth),
+    user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_session)
 ):
     """Manually add topic to a post"""
@@ -163,7 +260,7 @@ async def add_manual_topic(
 async def remove_topic(
     post_uid: str,
     topic_slug: str,
-    user: User = Depends(verify_admin_auth),
+    user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_session)
 ):
     """Remove topic from a post"""
@@ -197,7 +294,7 @@ async def remove_topic(
 async def generate_draft(
     post_uid: str,
     request: GenerateDraftRequest,
-    user: User = Depends(verify_admin_auth),
+    user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_session)
 ):
     """Generate a new draft note"""
@@ -219,7 +316,7 @@ async def generate_draft(
 @router.post("/drafts/{draft_id}:regenerate", response_model=GenerateDraftResponse)
 async def regenerate_draft(
     draft_id: str,
-    user: User = Depends(verify_admin_auth),
+    user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_session)
 ):
     """Regenerate a draft note"""
@@ -252,7 +349,7 @@ async def regenerate_draft(
 async def edit_draft(
     draft_id: str,
     request: EditDraftRequest,
-    user: User = Depends(verify_admin_auth),
+    user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_session)
 ):
     """Edit draft content"""
@@ -281,7 +378,7 @@ async def edit_draft(
 @router.post("/drafts/{draft_id}:approve")
 async def approve_draft(
     draft_id: str,
-    user: User = Depends(verify_admin_auth),
+    user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_session)
 ):
     """Approve a draft for submission"""
@@ -321,7 +418,7 @@ async def approve_draft(
 @router.post("/drafts/{draft_id}:submit", response_model=SubmissionResponse)
 async def submit_draft(
     draft_id: str,
-    user: User = Depends(verify_admin_auth),
+    user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_session)
 ):
     """Submit approved draft to X.com"""
@@ -340,14 +437,10 @@ async def submit_draft(
 # Reconciliation endpoints
 @router.post("/submissions/reconcile", response_model=ReconcileResponse)
 async def reconcile_submissions(
-    x_reconcile_secret: Optional[str] = Header(None),
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Reconcile submission outcomes from X.com"""
-    # Verify reconcile secret for automated triggers
-    from app.config import settings
-    if x_reconcile_secret != settings.reconcile_secret:
-        raise HTTPException(status_code=401, detail="Invalid reconcile secret")
     
     try:
         result = await submission.reconcile(session)
@@ -366,7 +459,8 @@ async def reconcile_submissions(
 async def count_posts_by_date_range(
     start_date: str,  # ISO format: 2024-01-01T00:00:00
     end_date: str,    # ISO format: 2024-01-31T23:59:59
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Count posts within a date range based on ingested_at timestamp"""
     try:
@@ -400,7 +494,7 @@ async def count_posts_by_date_range(
 @router.get("/posts/{post_uid}", response_model=PostDetailResponse)
 async def get_post_detail(
     post_uid: str,
-    user: User = Depends(verify_admin_auth),
+    user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_session)
 ):
     """Get detailed post information for admin"""
@@ -497,7 +591,8 @@ async def get_post_detail(
 async def list_classifiers(
     group_name: Optional[str] = None,
     is_active: Optional[bool] = None,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """List all classifiers with optional filtering"""
     try:
@@ -549,7 +644,8 @@ async def list_classifiers(
 @router.get("/classifiers/{slug}", response_model=ClassifierResponse)
 async def get_classifier(
     slug: str,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Get a specific classifier by slug"""
     try:
@@ -592,7 +688,8 @@ async def get_classifier(
 @router.post("/classifiers", response_model=ClassifierResponse)
 async def create_classifier(
     request: ClassifierCreate,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Create a new classifier"""
     try:
@@ -643,7 +740,8 @@ async def create_classifier(
 async def update_classifier(
     slug: str,
     request: ClassifierUpdate,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Update an existing classifier"""
     try:
@@ -704,7 +802,8 @@ async def update_classifier(
 @router.delete("/classifiers/{slug}")
 async def delete_classifier(
     slug: str,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Delete a classifier (will also delete all its classifications)"""
     try:
@@ -745,7 +844,8 @@ async def delete_classifier(
 @router.get("/posts/{post_uid}/classifications", response_model=List[ClassificationResponse])
 async def get_post_classifications(
     post_uid: str,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Get all classifications for a post"""
     try:
@@ -782,7 +882,8 @@ async def classify_post(
     post_uid: str,
     classifier_slugs: Optional[List[str]] = Query(None),
     force: bool = Query(True),
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """
     Run classifiers on a specific post
@@ -843,7 +944,8 @@ async def classify_posts_batch(
     classifier_slugs: Optional[List[str]] = Query(None),
     force: bool = Query(True),
     parallel: bool = Query(True),
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """
     Run classifiers on multiple posts
@@ -897,7 +999,8 @@ async def classify_posts_batch(
 @router.post("/classifications", response_model=ClassificationResponse)
 async def create_classification(
     request: ClassificationCreate,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Manually create a classification (for testing)"""
     try:
@@ -961,7 +1064,8 @@ async def batch_reclassify_posts(
     end_date: str,
     classifier_slugs: Optional[List[str]] = Query(None),
     force: bool = Query(True),
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """
     Trigger batch reclassification of posts within a date range
@@ -1029,7 +1133,10 @@ async def batch_reclassify_posts(
 
 
 @router.get("/batch-reclassify/{job_id}/status")
-async def get_batch_job_status(job_id: str):
+async def get_batch_job_status(
+    job_id: str,
+    user: User = Depends(require_admin)
+):
     """Get the status of a batch reclassification job"""
     try:
         from app.services import classification_jobs
@@ -1050,7 +1157,8 @@ async def get_batch_job_status(job_id: str):
 # Fact Checker endpoints
 @router.get("/fact-checkers")
 async def list_fact_checkers(
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """List all available fact checkers"""
     try:
@@ -1066,7 +1174,8 @@ async def run_fact_check_on_post(
     post_uid: str,
     fact_checker_slug: str,
     force: bool = False,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Run a specific fact checker on a post"""
     try:
@@ -1090,7 +1199,8 @@ async def run_fact_check_on_post(
 @router.get("/posts/{post_uid}/fact-checks")
 async def get_post_fact_checks(
     post_uid: str,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Get all fact checks for a post"""
     try:
@@ -1104,7 +1214,8 @@ async def get_post_fact_checks(
 @router.get("/fact-checks/{fact_check_id}/status")
 async def get_fact_check_status(
     fact_check_id: str,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Get the status of a fact check job"""
     try:
@@ -1123,7 +1234,8 @@ async def get_fact_check_status(
 async def delete_fact_check(
     post_uid: str,
     fact_checker_slug: str,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_admin)
 ):
     """Delete a fact check result to allow rerunning"""
     try:
