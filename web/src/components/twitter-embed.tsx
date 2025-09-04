@@ -23,10 +23,7 @@ declare global {
   }
 }
 
-export function TwitterEmbed({
-  postId,
-  className = "",
-}: TwitterEmbedProps) {
+export function TwitterEmbed({ postId, className = "" }: TwitterEmbedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,9 +82,7 @@ export function TwitterEmbed({
             embedContainer,
             {
               theme: "light",
-              width: "auto",
-              align: "center",
-              conversation: "none",
+              // conversation: "none",
               cards: "visible",
               dnt: true,
             }
@@ -133,7 +128,7 @@ export function TwitterEmbed({
     <div className={`twitter-embed-container ${className}`}>
       <div
         ref={containerRef}
-        className="min-h-[200px] flex items-center justify-center"
+        className="min-h-[200px] flex items-center justify-center [&>div]:w-full [&_iframe]:!max-w-[550px] [&_iframe]:!w-full"
       >
         <div className="animate-pulse">
           <div className="h-32 bg-gray-200 rounded w-full"></div>

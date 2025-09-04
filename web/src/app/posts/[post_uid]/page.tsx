@@ -141,132 +141,26 @@ export default function PostDetailPage() {
             <ClassificationChips classifications={post.classifications} />
           )}
 
-          {/* Twitter Embed with Reply/Quote Chain and Fact Check Status */}
-          {(() => {
-            // Extract referenced tweets
-            const rawJson = post.raw_json as any;
-            const referencedTweets = rawJson?.post?.referenced_tweets || [];
-            const replyToTweet = referencedTweets.find(
-              (ref: any) => ref.type === "replied_to"
-            );
-            const quotedTweet = referencedTweets.find(
-              (ref: any) => ref.type === "quoted"
-            );
+          {/* Twitter Embed and Fact Check */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Tweet Card */}
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>Tweet - Eligible for Note</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TwitterEmbed
+                  postId={post.platform_post_id}
+                  author={post.author_handle || undefined}
+                />
+              </CardContent>
+            </Card>
 
-            // Find referenced tweets in includes
-            let parentTweet = null;
-            let quotedTweetData = null;
-
-            if (rawJson?.includes?.tweets) {
-              if (replyToTweet) {
-                parentTweet = rawJson.includes.tweets.find(
-                  (tweet: any) => tweet.id === replyToTweet.id
-                );
-              }
-              if (quotedTweet) {
-                quotedTweetData = rawJson.includes.tweets.find(
-                  (tweet: any) => tweet.id === quotedTweet.id
-                );
-              }
-            }
-
-            const hasTweetChain = parentTweet || quotedTweetData;
-
-            // Single tweet: show side by side with fact check
-            if (!hasTweetChain) {
-              return (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Tweet Card */}
-                  <Card className="h-full">
-                    <CardHeader>
-                      <CardTitle>Tweet - Eligible for Note</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="border-l-4 border-l-blue-500 bg-blue-50/30 rounded-lg p-3">
-                        <TwitterEmbed
-                          postId={post.platform_post_id}
-                          author={post.author_handle || undefined}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Fact Check Viewer - Same height */}
-                  <div className="h-full">
-                    <FactCheckViewer postUid={postUid} />
-                  </div>
-                </div>
-              );
-            }
-
-            // Tweet chain: show normally with fact check below
-            return (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      {parentTweet
-                        ? "Reply Chain"
-                        : quotedTweetData
-                        ? "Quote Tweet - Eligible for Note"
-                        : "Tweet - Eligible for Note"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col md:flex-row gap-4">
-                      {/* Parent Tweet (if this is a reply) */}
-                      {parentTweet && (
-                        <div className="flex-1">
-                          <div className="mb-2 text-sm font-medium text-gray-700 flex items-center">
-                            <span>Replying to</span>
-                          </div>
-                          <div className="border-l-4 border-l-gray-300 bg-gray-50/30 rounded-lg p-3">
-                            <TwitterEmbed
-                              postId={parentTweet.id}
-                              author={parentTweet.author_id}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Main Tweet - Always the note-eligible post */}
-                      <div className="flex-1">
-                        {parentTweet && (
-                          <div className="mb-2 text-sm font-medium text-blue-700 flex items-center">
-                            <span>Reply - Eligible for Note</span>
-                          </div>
-                        )}
-                        <div className="border-l-4 border-l-blue-500 bg-blue-50/30 rounded-lg p-3">
-                          <TwitterEmbed
-                            postId={post.platform_post_id}
-                            author={post.author_handle || undefined}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Quoted Tweet (if this is a quote tweet) */}
-                      {quotedTweetData && (
-                        <div className="flex-1">
-                          <div className="mb-2 text-sm font-medium text-green-700 flex items-center">
-                            <span>Quoted Tweet</span>
-                          </div>
-                          <div className="border-l-4 border-l-green-500 bg-green-50/30 rounded-lg p-3">
-                            <TwitterEmbed
-                              postId={quotedTweetData.id}
-                              author={quotedTweetData.author_id}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Fact Check Viewer for tweet chains */}
-                <FactCheckViewer postUid={postUid} />
-              </>
-            );
-          })()}
+            {/* Fact Check Viewer - Same height */}
+            <div className="h-full">
+              <FactCheckViewer postUid={postUid} />
+            </div>
+          </div>
 
           {/* Community Note Status (if exists) */}
           {post.has_note && post.concise_body && (
