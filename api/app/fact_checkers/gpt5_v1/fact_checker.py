@@ -97,10 +97,7 @@ class GPT5FactCheckerV1(BaseFactChecker):
         
         # Get LLM instance
         llm = self._get_llm()
-        if not llm:
-            # Return mock result if no API key
-            return self._get_mock_result(post_data)
-        
+
         try:
             # Create structured output version
             structured_llm = llm.with_structured_output(FactCheckAnalysis)
@@ -155,56 +152,6 @@ class GPT5FactCheckerV1(BaseFactChecker):
             logger.error(f"Error in GPT-5 fact checking: {str(e)}", 
                         post_uid=post_data.get("post_uid"))
             raise
-    
-    def _get_mock_result(self, post_data: Dict[str, Any]) -> FactCheckResult:
-        """Return a mock result for testing"""
-        return FactCheckResult(
-            text=f"""# Fact Check Analysis (Mock)
-
-## Post Summary
-This is a mock fact-check for the post by @{post_data.get('author_handle', 'unknown')}.
-
-## Claims Identified
-1. **Mock Claim 1**: This is a placeholder claim from the post.
-   - **Verdict**: Unverifiable
-   - **Explanation**: This is a mock fact-check result as the GPT-5 API is not configured.
-
-2. **Mock Claim 2**: Another placeholder claim.
-   - **Verdict**: Needs Context
-   - **Explanation**: Additional context would be needed to verify this claim.
-
-## Overall Assessment
-This is a mock fact-check result. To enable real fact-checking with GPT-5, please configure the OPENAI_API_KEY environment variable.
-
-## Sources
-- Mock Source 1: Placeholder reference
-- Mock Source 2: Another placeholder reference
-
----
-*Note: This is a mock result generated for testing purposes.*""",
-            verdict="unverifiable",
-            confidence=0.5,
-            claims=[
-                {
-                    "claim": "Mock claim from post",
-                    "verdict": "unverifiable",
-                    "explanation": "This is a mock fact-check",
-                    "evidence": "No evidence available in mock mode"
-                }
-            ],
-            sources=[
-                {
-                    "description": "Mock source",
-                    "relevance": "Test data only"
-                }
-            ],
-            metadata={
-                "mock": True,
-                "fact_checker": self.slug,
-                "post_uid": post_data.get("post_uid")
-            }
-        )
-
 
 ########################################################
 # Prompts
@@ -241,7 +188,8 @@ Your markdown analysis should include:
 - **Bold** for emphasis on key findings
 - Proper citation format for sources
 
-Be thorough but concise. Focus on facts, not opinions."""
+Be thorough but concise. Focus on facts, not opinions. Limit your response to
+300 words."""
 
 human_prompt = """Fact-check the following {platform} post:
 
