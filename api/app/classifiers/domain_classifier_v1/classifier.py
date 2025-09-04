@@ -143,7 +143,7 @@ system_prompt = """You are an expert fact-checker and classifier. Your task is t
 
 1. **science_engineering**: Physics, chemistry, biology, technology, engineering, energy systems
 2. **health_medicine**: Epidemiology, clinical research, vaccines, nutrition, toxicology
-3. **nature_climate**: Climate change, ecology, pollution, forestry, oceans
+3. **nature_climate**: Climate change, ecology, pollution, forestry, oceans, trade-offs around renewable energy
 4. **economy_business**: Macroeconomics, labor, inflation, prices, corporate performance, financial markets
 5. **law_regulation**: Statutes, regulations, legal rulings, rights, mandates, court proceedings
 6. **politics_government**: Government actions, election results or processes, official positions of agencies, statements or actions from politicians

@@ -192,8 +192,8 @@ export function FactCheckViewer({ postUid }: FactCheckViewerProps) {
             
             {/* Fact Check Content */}
             {currentCheck.status === 'completed' && currentCheck.result?.text && (
-              <div className="prose prose-sm max-w-none">
-                <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="markdown-content">
                   <ReactMarkdown>{currentCheck.result.text}</ReactMarkdown>
                 </div>
               </div>

@@ -5,11 +5,11 @@ These endpoints adapt their responses based on the caller's authentication/role.
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import Optional, List
+from typing import Optional
 import structlog
 
 from app.database import get_session
-from app.models import Classifier, User, Classification, FactChecker, FactCheck, Post
+from app.models import Classifier, User, FactChecker, FactCheck, Post
 from app.schemas.public import (
     ClassifierPublicResponse,
     FactCheckerPublicResponse,
