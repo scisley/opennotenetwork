@@ -89,7 +89,7 @@ class GPT5FactCheckerV1(BaseFactChecker):
             )
         return self._llm
     
-    async def check_fact(self, post_data: Dict[str, Any]) -> FactCheckResult:
+    async def fact_check(self, post_data: Dict[str, Any]) -> FactCheckResult:
         """Perform fact checking using GPT-5"""
         
         if not await self.validate_input(post_data):

@@ -56,7 +56,7 @@ async def _run_fact_check_background(
             # Run the fact checker
             logger.info(f"Running fact checker {fact_checker_slug} in background", 
                        fact_check_id=fact_check_id)
-            result = await fact_checker.check_fact(post_data)
+            result = await fact_checker.fact_check(post_data)
             
             # Update the fact check record with results
             await session.execute(

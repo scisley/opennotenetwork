@@ -50,7 +50,7 @@ class BaseFactChecker(ABC):
         pass
     
     @abstractmethod
-    async def check_fact(self, post_data: Dict[str, Any]) -> FactCheckResult:
+    async def fact_check(self, post_data: Dict[str, Any]) -> FactCheckResult:
         """
         Perform fact checking on a post
         
