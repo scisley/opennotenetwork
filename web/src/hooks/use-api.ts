@@ -220,14 +220,14 @@ export function useClassifyPost(postUid: string) {
   });
 }
 
-// Fact Checker API hooks
+// Fact Checker API hooks - using adaptive pattern
 export function useFactCheckers() {
-  const authApi = useAuthenticatedApi();
+  const api = useApi();
 
   return useQuery({
     queryKey: ["fact-checkers"],
     queryFn: async () => {
-      const response = await authApi.get("/api/admin/fact-checkers");
+      const response = await api.get("/api/fact-checkers");
       return response.data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -235,26 +235,30 @@ export function useFactCheckers() {
 }
 
 export function useFactChecks(postUid: string) {
-  const authApi = useAuthenticatedApi();
+  const api = useApi();
 
   return useQuery({
     queryKey: ["fact-checks", postUid],
     queryFn: async () => {
-      const response = await authApi.get(
-        `/api/admin/posts/${postUid}/fact-checks`
+      const response = await api.get(
+        `/api/posts/${postUid}/fact-checks`
       );
       return response.data;
     },
-    staleTime: 1000 * 60 * 1, // 1 minute - shorter because fact checks can be processing
+    staleTime: 1000 * 30, // 30 seconds - shorter for active polling
     enabled: !!postUid,
-    refetchInterval: (data: any) => {
+    refetchInterval: (query) => {
+      // Access the data from the query object
+      const data = query.state.data;
+      
       // Check if any fact checks are processing
       const hasProcessing = data?.fact_checks?.some(
         (check: any) =>
           check.status === "pending" || check.status === "processing"
       );
-      // Poll every 3 seconds if processing, otherwise stop
-      return hasProcessing ? 3000 : false;
+      
+      // Poll every 2 seconds if processing, otherwise stop
+      return hasProcessing ? 2000 : false;
     },
   });
 }
@@ -280,8 +284,9 @@ export function useRunFactCheck(postUid: string) {
       return response.data;
     },
     onSuccess: () => {
-      // Invalidate fact checks to refetch
+      // Invalidate and refetch fact checks immediately
       queryClient.invalidateQueries({ queryKey: ["fact-checks", postUid] });
+      queryClient.refetchQueries({ queryKey: ["fact-checks", postUid] });
     },
     retry: false,
   });
@@ -299,8 +304,9 @@ export function useDeleteFactCheck(postUid: string) {
       return response.data;
     },
     onSuccess: () => {
-      // Invalidate fact checks to refetch
+      // Invalidate and refetch fact checks immediately
       queryClient.invalidateQueries({ queryKey: ["fact-checks", postUid] });
+      queryClient.refetchQueries({ queryKey: ["fact-checks", postUid] });
     },
     retry: false,
   });

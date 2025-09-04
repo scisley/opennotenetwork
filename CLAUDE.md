@@ -267,6 +267,12 @@ The API uses a **resource-based URL pattern with role-adaptive responses**. The 
   - `GET /api/classifiers/{slug}` - Returns:
     - Guest users: Classifier details (only if active)
     - Admin users: Classifier details (regardless of active status)
+  - `GET /api/fact-checkers` - Returns:
+    - Guest users: Active fact checkers only
+    - Admin users: All fact checkers (active and inactive)
+  - `GET /api/posts/{post_uid}/fact-checks` - Returns:
+    - Guest users: Completed fact checks only
+    - Admin users: All fact checks (including pending/failed)
 
 #### 3. Admin-Only Endpoints (`/api/admin/*`)
 - **Require authentication and admin role**
@@ -274,6 +280,8 @@ The API uses a **resource-based URL pattern with role-adaptive responses**. The 
 - Examples:
   - `POST /api/admin/ingest` - Trigger X.com ingestion
   - `POST /api/admin/posts/{post_uid}/classify` - Run classifiers
+  - `POST /api/admin/posts/{post_uid}/fact-check/{slug}` - Run fact check
+  - `DELETE /api/admin/posts/{post_uid}/fact-check/{slug}` - Delete fact check
   - `POST /api/admin/classifiers` - Create new classifier
   - All mutation operations (CREATE, UPDATE, DELETE)
 
@@ -298,7 +306,7 @@ function useApi() {
 - For resource endpoints with **role-adaptive responses**
 - Automatically includes auth token if available
 - Silently continues without auth for guest users
-- Used by: `useClassifiers()`, future adaptive endpoints
+- Used by: `useClassifiers()`, `useFactCheckers()`, `useFactChecks()`
 
 #### 3. `useAuthenticatedApi()` Hook
 ```typescript
@@ -310,7 +318,7 @@ function useAuthenticatedApi() {
 - For **admin-only** endpoints
 - Requires authentication token
 - Fails fast if user not authenticated
-- Used by: `useClassifyPost()`, `useFactCheckers()`, etc.
+- Used by: `useClassifyPost()`, `useRunFactCheck()`, `useDeleteFactCheck()`
 
 ### Role-Based Access Control
 
@@ -347,6 +355,26 @@ async def get_classifiers(
         
     # Everyone gets the same response schema (ClassifierPublicResponse)
     # Only difference is which classifiers they can see
+```
+
+### Example: Fact Checks Endpoint
+
+```python
+# /api/posts/{post_uid}/fact-checks - Role-adaptive responses
+@router.get("/posts/{post_uid}/fact-checks")
+async def get_post_fact_checks(
+    post_uid: str,
+    current_user: Optional[User] = Depends(get_optional_user),
+    session: AsyncSession = Depends(get_session)
+):
+    query = select(FactCheck).where(FactCheck.post_uid == post_uid)
+    
+    if not current_user or current_user.role != "admin":
+        # Guest/viewer: Only completed fact checks
+        query = query.where(FactCheck.status == "completed")
+    # Admin: All fact checks including pending/failed
+    
+    # Same response schema for all users (FactCheckPublicResponse)
 ```
 
 ### Best Practices

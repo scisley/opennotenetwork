@@ -3,7 +3,7 @@
 /* eslint-disable react/no-unescaped-entities */
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { usePostById } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { FactCheckViewer } from "@/components/fact-check-viewer";
 
 export default function PostDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const postUid = decodeURIComponent(params.post_uid as string);
   const { user } = useUser();
 
@@ -24,6 +25,11 @@ export default function PostDetailPage() {
 
   // State for collapsible debug section
   const [showRawData, setShowRawData] = useState(false);
+  
+  // Build the back link with preserved query parameters from the current URL
+  const backToPostsUrl = searchParams.toString() 
+    ? `/posts?${searchParams.toString()}`
+    : "/posts";
 
   // Fetch the current post
   const {
@@ -73,7 +79,7 @@ export default function PostDetailPage() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link
-              href="/posts"
+              href={backToPostsUrl}
               className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

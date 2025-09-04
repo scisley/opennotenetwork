@@ -327,7 +327,9 @@ function NotesPageContent() {
                     className="hover:shadow-md transition-shadow cursor-pointer group relative"
                   >
                     <Link
-                      href={`/posts/${encodeURIComponent(post.post_uid)}`}
+                      href={`/posts/${encodeURIComponent(post.post_uid)}${
+                        searchParams.toString() ? `?${searchParams.toString()}` : ""
+                      }`}
                       className="block"
                     >
                       <CardHeader>

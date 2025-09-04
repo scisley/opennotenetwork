@@ -84,3 +84,29 @@ class PostListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class FactCheckerPublicResponse(BaseModel):
+    """Public response for a fact checker"""
+    id: str
+    slug: str
+    name: str
+    description: Optional[str]
+    version: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class FactCheckPublicResponse(BaseModel):
+    """Public response for a fact check"""
+    id: str
+    post_uid: str
+    fact_checker: FactCheckerPublicResponse
+    result: Optional[Dict[str, Any]]
+    verdict: Optional[str]
+    confidence: Optional[float]
+    status: str
+    error_message: Optional[str]
+    created_at: datetime
+    updated_at: datetime

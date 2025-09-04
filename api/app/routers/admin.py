@@ -1056,21 +1056,7 @@ async def get_batch_job_status(
         raise HTTPException(status_code=500, detail="Failed to get job status")
 
 
-# Fact Checker endpoints
-@router.get("/fact-checkers")
-async def list_fact_checkers(
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(require_admin)
-):
-    """List all available fact checkers"""
-    try:
-        fact_checkers = await fact_checking.list_available_fact_checkers(session)
-        return {"fact_checkers": fact_checkers}
-    except Exception as e:
-        logger.error("Failed to list fact checkers", error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to list fact checkers")
-
-
+# Fact Checker endpoints - Mutations only (GET endpoints moved to resources.py)
 @router.post("/posts/{post_uid}/fact-check/{fact_checker_slug}")
 async def run_fact_check_on_post(
     post_uid: str,
@@ -1096,21 +1082,6 @@ async def run_fact_check_on_post(
                     fact_checker=fact_checker_slug,
                     error=str(e))
         raise HTTPException(status_code=500, detail="Failed to run fact check")
-
-
-@router.get("/posts/{post_uid}/fact-checks")
-async def get_post_fact_checks(
-    post_uid: str,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(require_admin)
-):
-    """Get all fact checks for a post"""
-    try:
-        fact_checks = await fact_checking.get_fact_checks_for_post(post_uid, session)
-        return {"fact_checks": fact_checks}
-    except Exception as e:
-        logger.error("Failed to get fact checks", post_uid=post_uid, error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to get fact checks")
 
 
 @router.get("/fact-checks/{fact_check_id}/status")

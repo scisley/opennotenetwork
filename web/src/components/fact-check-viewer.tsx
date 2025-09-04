@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,10 @@ interface FactCheckViewerProps {
 
 export function FactCheckViewer({ postUid }: FactCheckViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { user } = useUser();
+  
+  // Check if user is admin
+  const isAdmin = user?.publicMetadata?.role === 'admin';
   
   const { data: factChecksData, isLoading: checksLoading } = useFactChecks(postUid);
   const { data: factCheckersData } = useFactCheckers();
@@ -133,15 +138,17 @@ export function FactCheckViewer({ postUid }: FactCheckViewerProps) {
                   <Badge variant="outline">Pending</Badge>
                 )}
                 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRerun}
-                  disabled={runFactCheck.isPending || deleteFactCheck.isPending || currentCheck.status === 'processing'}
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Rerun
-                </Button>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRerun}
+                    disabled={runFactCheck.isPending || deleteFactCheck.isPending || currentCheck.status === 'processing'}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Rerun
+                  </Button>
+                )}
               </div>
             </div>
             
@@ -238,7 +245,7 @@ export function FactCheckViewer({ postUid }: FactCheckViewerProps) {
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-600 mb-4">No fact checks have been run yet.</p>
-            {availableCheckers.length > 0 && (
+            {isAdmin && availableCheckers.length > 0 && (
               <div className="space-y-2">
                 <p className="text-sm text-gray-500 mb-3">Available fact checkers:</p>
                 {availableCheckers.map((checker: any) => (
@@ -257,6 +264,11 @@ export function FactCheckViewer({ postUid }: FactCheckViewerProps) {
                   </div>
                 ))}
               </div>
+            )}
+            {!isAdmin && factCheckers.length > 0 && (
+              <p className="text-sm text-gray-500">
+                {factCheckers.length} fact checker{factCheckers.length !== 1 ? 's' : ''} available
+              </p>
             )}
           </div>
         )}
