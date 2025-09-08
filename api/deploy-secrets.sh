@@ -32,6 +32,8 @@ grep -v '^#\|^$\|ALLOWED_' .env.local | \
 
 echo ""
 echo "✅ Secrets deployed successfully!"
+echo "❌ WAIT! Make sure you manually use the Clerk production keys"
+echo "  for CLERK_JWKS_URL, CLERK_SECRET_KEY, and CLERK_PUBLISHABLE_KEY"
 echo ""
 echo "You can verify with: flyctl secrets list"
 echo "To deploy your app, run: flyctl deploy"

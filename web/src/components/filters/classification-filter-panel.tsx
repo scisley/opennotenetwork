@@ -115,8 +115,8 @@ export function ClassificationFilterPanel({
   );
 
   return (
-    <div className={`${className} bg-white rounded-lg shadow-sm border`}>
-      <div className="p-4 border-b">
+    <div className={`${className} bg-white rounded-lg shadow-sm border flex flex-col h-full`}>
+      <div className="p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-gray-600" />
@@ -138,7 +138,7 @@ export function ClassificationFilterPanel({
         </div>
       </div>
 
-      <ScrollArea className="h-[600px]">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-4">
           {/* Single Select Classifiers */}
           {singleSelectClassifiers.length > 0 && (
@@ -232,7 +232,7 @@ export function ClassificationFilterPanel({
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t bg-gray-50">
+      <div className="p-4 border-t bg-gray-50 flex-shrink-0">
         <Button 
           onClick={applyFilters} 
           className="w-full" 

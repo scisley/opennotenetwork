@@ -255,7 +255,7 @@ export default function PostDetailPage() {
             </CardHeader>
             {showRawData && (
               <CardContent>
-                <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-96">
+                <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-[48rem]">
                   <pre className="text-green-400 text-xs font-mono whitespace-pre-wrap">
                     {post.raw_json
                       ? JSON.stringify(post.raw_json, null, 2)

@@ -10,11 +10,13 @@ from .registry import FactCheckerRegistry, register_fact_checker
 
 # Import all fact checker implementations to register them
 from .gpt5_v1 import GPT5FactCheckerV1
+from .science_checker import ScienceFactCheckerV1
 
 __all__ = [
     "BaseFactChecker",
     "FactCheckResult", 
     "FactCheckerRegistry",
     "register_fact_checker",
-    "GPT5FactCheckerV1"
+    "GPT5FactCheckerV1",
+    "ScienceFactCheckerV1"
 ]
