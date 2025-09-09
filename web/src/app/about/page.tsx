@@ -48,7 +48,7 @@ export default function AboutPage() {
             <div>
               <h3 className="text-xl font-medium">5. Submission</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Approved notes are submitted to X.com's Community Notes system.
+                Approved notes are submitted to X.com&apos;s Community Notes system.
               </p>
             </div>
           </div>

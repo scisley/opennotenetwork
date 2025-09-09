@@ -107,7 +107,7 @@ class XAPIClient:
             endpoint_params = [
                 f"test_mode=true",
                 f"max_results={max_results}",
-                f"tweet.fields=author_id,created_at,referenced_tweets,media_metadata,note_tweet,public_metrics,context_annotations",
+                f"tweet.fields=author_id,created_at,referenced_tweets,entities,attachments,media_metadata,note_tweet,public_metrics",
                 f"expansions=attachments.media_keys,referenced_tweets.id,referenced_tweets.id.attachments.media_keys,author_id",
                 f"user.fields=description,username,name,public_metrics",
                 f"media.fields=alt_text,duration_ms,height,media_key,preview_image_url,public_metrics,type,url,width,variants"

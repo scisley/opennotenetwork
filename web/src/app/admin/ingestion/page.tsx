@@ -76,6 +76,7 @@ export default function IngestionPage() {
     }, 2000) // Poll every 2 seconds
 
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentJob?.job_id, currentJob?.status, authApi])
 
   const handleStartIngestion = async () => {

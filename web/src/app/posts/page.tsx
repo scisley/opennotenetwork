@@ -251,18 +251,20 @@ function NotesPageContent() {
                     )}
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-full sm:w-96 p-0">
-                  <SheetHeader className="p-4 border-b">
+                <SheetContent side="right" className="w-full sm:w-96 p-0 flex flex-col h-full">
+                  <SheetHeader className="p-4 border-b flex-shrink-0">
                     <SheetTitle>Classification Filters</SheetTitle>
                     <SheetDescription>
                       Filter posts by their classifications
                     </SheetDescription>
                   </SheetHeader>
-                  <ClassificationFilterPanel
-                    currentFilters={filters}
-                    onFiltersChange={handleFiltersChange}
-                    className="border-0 shadow-none rounded-none"
-                  />
+                  <div className="flex-1 overflow-hidden">
+                    <ClassificationFilterPanel
+                      currentFilters={filters}
+                      onFiltersChange={handleFiltersChange}
+                      className="border-0 shadow-none rounded-none h-full"
+                    />
+                  </div>
                 </SheetContent>
               </Sheet>
             </div>
