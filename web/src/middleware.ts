@@ -11,7 +11,10 @@ declare global {
 }
 
 // Define which routes require admin access
-const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+const isAdminRoute = createRouteMatcher([
+  "/admin(.*)",
+  "/posts/(.*)/manage"
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   // Protect admin routes
