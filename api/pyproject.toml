@@ -1,0 +1,70 @@
+[tool.poetry]
+name = "opennote-network-api"
+version = "0.1.0"
+description = "AI-powered fact-checking network for Community Notes"
+authors = ["OpenNoteNetwork Team"]
+package-mode = false
+# readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.6"
+uvicorn = {extras = ["standard"], version = "^0.32.1"}
+sqlalchemy = "^2.0.36"
+alembic = "^1.14.0"
+pydantic = "^2.10.3"
+pydantic-settings = "^2.7.0"
+python-multipart = "^0.0.19"
+httpx = {extras = ["http2"], version = "^0.28.1"}
+requests-oauthlib = "^2.0.0"
+structlog = "^24.4.0"
+tenacity = "^9.0.0"
+fastapi-clerk-auth = "^0.0.7"
+python-dotenv = "^1.0.1"
+asyncpg = "^0.29.0"
+pyjwt = "^2.9.0"
+greenlet = "^3.0.0"
+langgraph = "^0.6.6"
+langchain = "^0.3.27"
+langchain-openai = "^0.3.32"
+langchain-anthropic = "^0.3.19"
+langchain-core = "^0.3.75"
+langsmith = "^0.4.21"
+requests = "^2.32.5"
+firecrawl-py = "^4.3.6"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
+black = "^24.0.0"
+ruff = "^0.1.0"
+mypy = "^1.8.0"
+ipykernel = "^6.30.1"
+pandas = "^2.3.3"
+matplotlib = "^3.10.6"
+plotly = "^6.3.1"
+nbformat = "^5.10.4"
+kaleido = "^1.1.0"
+graphviz = "^0.21"
+scipy = "^1.16.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+select = ["E", "W", "F", "I", "N", "UP"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
