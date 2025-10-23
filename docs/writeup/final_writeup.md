@@ -18,7 +18,7 @@ You can continue any of the above ChatGPT conversations to get any additional de
 
 # Background
 
-This project was completed as part of the [AI for Human Reasoning Fellowship](https://snazzy-cajeta-24ac71.netlify.app/), a 12-week program focused on applying AI to improve collective reasoning and decision-making. This program was put on by the good folks at the [Future of Life Foundation](https://www.flf.org/) and was an absolutely amazing experience \- huge shoutout to the staff who made the fellowship possible. We spent around four weeks exploring ideas, then the rest building, testing, documenting, iterating, and generally having a great time in this space.
+This project was completed as part of the [AI for Human Reasoning Fellowship](https://aiforhumanreasoning.com/), a 12-week program focused on applying AI to improve collective reasoning and decision-making. This program was put on by the good folks at the [Future of Life Foundation](https://www.flf.org/) and was an absolutely amazing experience \- huge shoutout to the staff who made the fellowship possible. We spent around four weeks exploring ideas, then the rest building, testing, documenting, iterating, and generally having a great time in this space.
 
 For my project, I chose to build an AI-based Community Note writer. This fits within the larger space of collective epistemics \- how groups of people acquire, share, evaluate, and justify knowledge.
 
