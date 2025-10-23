@@ -52,9 +52,6 @@ Here's the full process; from ingesting candidate posts to tracking the final re
 <p align="center">
   <img src="./images/fact-check-process.png" alt="Process diagram" width="600" />
 </p>
-<p align="center">
-  <img src="./images/fact-check-process.png" alt="Process diagram" width="600" />
-</p>
 
 I'll discuss each in turn.
 I'll discuss each in turn.
@@ -92,9 +89,6 @@ Below is a figure showing the breakdown of notable post domains.
 <p align="center">
   <img src="./images/domain-classifier.png" alt="Domain breakdown" width="600" />
 </p>
-<p align="center">
-  <img src="./images/domain-classifier.png" alt="Domain breakdown" width="600" />
-</p>
 
 It should come as no surprise that politics and government, recent news, and media & attribution dominate the Community Notes dataset. Media & Attribution are posts where the main challenge is identifying if a quote or image is real. (The percentages shown add up to more than 100% because this is a multi-tag classification system \- a single post can be assigned to multiple domains simultaneously.)
 
@@ -109,9 +103,6 @@ I instructed the LLM to classify political orientation explicitly from a U.S. pe
 <p align="center">
   <img src="./images/partisan-tilt-distribution.png" alt="Partisan tilt distribution" width="600" />
 </p>
-<p align="center">
-  <img src="./images/partisan-tilt-distribution.png" alt="Partisan tilt distribution" width="600" />
-</p>
 
 An important note on interpretation: "left-leaning" means the post itself appears to make a left-leaning claim, which typically means right-leaning users flagged it for fact-checking. Similarly, "right-leaning" posts were likely flagged by left-leaning users.
 
@@ -123,9 +114,6 @@ The result ended up being roughly balanced \- 28.8% versus 30.9%. The largest ca
 
 Clarity measures how straightforward the fact-checking task would be for a given post. Only 5.8% of posts scored as "very clear" \- most claims are ambiguous, context-dependent, or simply not fact-checkable.
 
-<p align="center">
-  <img src="./images/clarity-distribution.png" alt="Clarity distribution" width="600" />
-</p>
 <p align="center">
   <img src="./images/clarity-distribution.png" alt="Clarity distribution" width="600" />
 </p>
@@ -148,9 +136,6 @@ The final example still puzzles me; “who have free time DM me”. Huh? Maybe i
 
 Not all classifiers use an LLM. I built a classifier that just looks at the post metadata and tags it as having one image, multiple images, video, or no media. As you can see from the chart below \- you really need to consider media when building a Community Note AI. Sticking to just text posts would be a huge constraint.
 
-<p align="center">
-  <img src="./images/tweet-type-distribution.png" alt="Tweet type distribution" width="600" />
-</p>
 <p align="center">
   <img src="./images/tweet-type-distribution.png" alt="Tweet type distribution" width="600" />
 </p>
@@ -180,9 +165,6 @@ Consider the notable post below. It makes no sense if you haven't been paying at
 <p align="center">
   <img src="./images/greg_abbot.png" alt="Context example tweet" width="300" />
 </p>
-<p align="center">
-  <img src="./images/greg_abbot.png" alt="Context example tweet" width="300" />
-</p>
 
 In this stage, it's also a good idea to pull out the specific fact checkable claims within the post. A post can have multiple claims, but if it doesn’t have any, then it’s not fact checkable and should be skipped. Separating the identification of claims from the investigation of claims could also help with evaluating a fact checker.
 In this stage, it's also a good idea to pull out the specific fact checkable claims within the post. A post can have multiple claims, but if it doesn’t have any, then it’s not fact checkable and should be skipped. Separating the identification of claims from the investigation of claims could also help with evaluating a fact checker.
@@ -195,9 +177,6 @@ Now we get to the actual fact checking. The core fact-checking methodology I emp
 - The post is satire \- the context gathering might have found the original source of the claim to be a satire website.
 - Fake media \- the images are fake. My system would normally only find this if that information was present on an existing fact checking website like Snopes. But, a more advanced fact checker could use reverse-image lookup or AI watermark detection to determine that the media in the post is fake.
 
-<p align="center">
-  <img src="./images/fact-check-diagram.png" alt="Fact check diagram" width="600" />
-</p>
 <p align="center">
   <img src="./images/fact-check-diagram.png" alt="Fact check diagram" width="600" />
 </p>
@@ -282,9 +261,6 @@ The Sankey diagram below illustrates the flow from notable post ingestion all th
 <p align="center">
   <img src="./images/sankey.png" alt="Sankey diagram" width="700" />
 </p>
-<p align="center">
-  <img src="./images/sankey.png" alt="Sankey diagram" width="700" />
-</p>
 
 Notice how steep the drop off is. We start with 2k posts and end with 14 successful submissions. About ⅓ were skipped because they had video in them and another third were skipped because the post was unclear.
 
@@ -299,9 +275,6 @@ By far my most successful Community Note was on a post by Elon Musk about the Te
 This is a pretty amazing claim. It's also not entirely accurate. It turns out the race was done over an eighth of a mile and the results extrapolated to a quarter mile. Further, when independent testers tried to reproduce the results, the Porsche wins the quarter mile race. You can see the [original post here](https://x.com/elonmusk/status/1973656653208924402) (complete with my AI Community Note\!), but here's a screenshot for posterity.
 This is a pretty amazing claim. It's also not entirely accurate. It turns out the race was done over an eighth of a mile and the results extrapolated to a quarter mile. Further, when independent testers tried to reproduce the results, the Porsche wins the quarter mile race. You can see the [original post here](https://x.com/elonmusk/status/1973656653208924402) (complete with my AI Community Note\!), but here's a screenshot for posterity.
 
-<p align="center">
-  <img src="./images/elon-cybertruck.png" alt="Elon Musk's Cybertruck post" width="300" />
-</p>
 <p align="center">
   <img src="./images/elon-cybertruck.png" alt="Elon Musk's Cybertruck post" width="300" />
 </p>
@@ -325,9 +298,6 @@ Because I was using GPT-5 reasoning models, the cost wasn't fixed. Some fact che
 <p align="center">
   <img src="./images/cost_distribution.png" alt="Cost distribution" width="600" />
 </p>
-<p align="center">
-  <img src="./images/cost_distribution.png" alt="Cost distribution" width="600" />
-</p>
 
 Overall during the 10-day analysis period, I spent $385 on fact-checking operations. This includes generating all fact checks (not just the ones that led to successful Community Notes) as well as classification and note writing costs. These yielded 2.3M impressions and 993 unique visitors to [opennotenetwork.com](http://opennotenetwork.com). This resulted in:
 
@@ -336,9 +306,6 @@ Overall during the 10-day analysis period, I spent $385 on fact-checking operati
 
 To put these costs in context, traditional social media advertising ranges from $1.72 to $10.50 CPM and from $0.06 to $1.93 for CPC, depending on platform. The AI Community Note CPC is competitive with advertising rates, and the CPM is far lower. However, both comparisons have significant limitations.
 
-<p align="center">
-  <img src="./images/cpc-cpm-comparison.png" alt="CPC vs CPM comparison" width="600" />
-</p>
 <p align="center">
   <img src="./images/cpc-cpm-comparison.png" alt="CPC vs CPM comparison" width="600" />
 </p>
@@ -407,9 +374,6 @@ The chart below shows the distribution of post "half-lives". A post's half life 
 <p align="center">
   <img src="./images/tweet-age-distribution.png" alt="Tweet age distribution" width="600" />
 </p>
-<p align="center">
-  <img src="./images/tweet-age-distribution.png" alt="Tweet age distribution" width="600" />
-</p>
 
 Now consider what has to happen for a Community Note to get added to a post:
 
@@ -433,9 +397,6 @@ Some accounts seem to be exploiting the bridging algorithm's characteristics by 
 
 This [post](https://x.com/GuntherEagleman/status/1975524859640774789) about Sarah McBride, the first openly transgender representative in the U.S. House, illustrates the problem. The text reads: "This is a dude. If I'm wrong, community note this post."
 
-<p align="center">
-  <img src="./images/gunther-post.png" alt="Gunther's post" width="300" />
-</p>
 <p align="center">
   <img src="./images/gunther-post.png" alt="Gunther's post" width="300" />
 </p>
