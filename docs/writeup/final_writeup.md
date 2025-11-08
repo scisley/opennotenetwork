@@ -166,7 +166,6 @@ Consider the notable post below. It makes no sense if you haven't been paying at
 </p>
 
 In this stage, it's also a good idea to pull out the specific fact checkable claims within the post. A post can have multiple claims, but if it doesn’t have any, then it’s not fact checkable and should be skipped. Separating the identification of claims from the investigation of claims could also help with evaluating a fact checker.
-In this stage, it's also a good idea to pull out the specific fact checkable claims within the post. A post can have multiple claims, but if it doesn’t have any, then it’s not fact checkable and should be skipped. Separating the identification of claims from the investigation of claims could also help with evaluating a fact checker.
 
 ## Stage 5: Analysis
 
