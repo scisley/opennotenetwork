@@ -137,7 +137,7 @@ The final example still puzzles me; “who have free time DM me”. Huh? Maybe i
 Not all classifiers use an LLM. I built a classifier that just looks at the post metadata and tags it as having one image, multiple images, video, or no media. As you can see from the chart below \- you really need to consider media when building a Community Note AI. Sticking to just text posts would be a huge constraint.
 
 <p align="center">
-  <img src="./images/tweet-type-distribution.png" alt="Tweet type distribution" width="600" />
+  <img src="./images/media-type-distribution.png" alt="Tweet type distribution" width="600" />
 </p>
 
 This classifier was mostly helpful for debugging, but it also helped with the next step, selection.
