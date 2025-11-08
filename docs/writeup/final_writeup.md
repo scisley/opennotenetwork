@@ -160,7 +160,6 @@ Contextualization could also be considered part of the next step, “Analysis”
 Imagine waking up after sleeping since last October (the training cutoff for GPT-5 models). You're shown a tweet referencing current events without explicit details. Posts on X regularly rely on tacit knowledge that the community shares or has top-of-mind. Without that context, fact-checking becomes impossible.
 
 Consider the notable post below. It makes no sense if you haven't been paying attention to American politics for the last couple months as the President has sent or threatened to send National Guard troops into major American cities (oh, the sentences I never thought I'd write). In this case, the post isn't fact checkable, but still, the missing context makes it difficult to know that.
-Consider the notable post below. It makes no sense if you haven't been paying attention to American politics for the last couple months as the President has sent or threatened to send National Guard troops into major American cities (oh, the sentences I never thought I'd write). In this case, the post isn't fact checkable, but still, the missing context makes it difficult to know that.
 
 <p align="center">
   <img src="./images/greg_abbot.png" alt="Context example tweet" width="300" />
