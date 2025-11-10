@@ -177,13 +177,14 @@ Subcategories by main category (use exact values):
         })
         
         try:
-            # Get structured output directly from LLM
+            # Get structured output directly from LLM (with tracing disabled)
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": content}
             ]
-            
-            classification = await self.structured_llm.ainvoke(messages)
+
+            with self.no_tracing:
+                classification = await self.structured_llm.ainvoke(messages)
             
             # Build hierarchical result matching DB schema
             levels = []

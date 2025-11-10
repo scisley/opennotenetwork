@@ -88,12 +88,13 @@ class ClarityV1(BaseClassifier):
             "media": prepared.get("media", [])
         })
         
-        # Get structured output from LLM
+        # Get structured output from LLM (with tracing disabled)
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": content}
         ]
-        result: ClarityClassification = await structured_llm.ainvoke(messages)
+        with self.no_tracing:
+            result: ClarityClassification = await structured_llm.ainvoke(messages)
         
         classification = {
             "type": "single",

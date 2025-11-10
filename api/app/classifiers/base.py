@@ -3,17 +3,18 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 import structlog
+from langsmith import tracing_context
 
 logger = structlog.get_logger()
 
 
 class BaseClassifier(ABC):
     """Abstract base class for all classifiers"""
-    
+
     def __init__(self, slug: str, output_schema: Dict[str, Any], config: Optional[Dict[str, Any]] = None):
         """
         Initialize classifier
-        
+
         Args:
             slug: Unique identifier for this classifier
             output_schema: Output schema from database
@@ -23,6 +24,11 @@ class BaseClassifier(ABC):
         self.output_schema = output_schema
         self.config = config or {}
         self.logger = logger.bind(classifier=slug)
+
+    @property
+    def no_tracing(self):
+        """Context manager to disable LangSmith tracing for classifier calls"""
+        return tracing_context(enabled=False)
     
     @abstractmethod
     async def classify(self, post_data: Dict[str, Any]) -> Dict[str, Any]:

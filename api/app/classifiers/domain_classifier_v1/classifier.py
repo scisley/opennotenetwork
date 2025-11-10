@@ -100,12 +100,13 @@ class DomainClassifierV1(BaseClassifier):
             "media": prepared.get("media", [])
         })
         
-        # Get structured output from LLM
+        # Get structured output from LLM (with tracing disabled)
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": content}
         ]
-        result = await structured_llm.ainvoke(messages)
+        with self.no_tracing:
+            result = await structured_llm.ainvoke(messages)
         
         # Format the results to match the classification schema
         domains = result.domains
