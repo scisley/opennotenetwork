@@ -555,8 +555,14 @@ class GeneralFactCheckerV1(BaseFactChecker):
     async def should_run(self, post_data: Dict[str, Any], classifications: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Determine if this fact checker should run based on classifications.
+
+        Runs when:
+        - Clarity = 5
+        - No video content
+        - Domain is "nature & climate" OR "science & engineering"
+        - Domain is NOT "politics & government"
         """
-        # Check for video content first - we don't run on video posts
+        # Check for video content - we don't run on video posts
         has_video = False
         for classification in classifications:
             if classification.get("classifier_slug") == "media-type-v1":
@@ -568,18 +574,13 @@ class GeneralFactCheckerV1(BaseFactChecker):
                             has_video = True
                             break
 
-        return {
-            "should_run": False,
-            "reason": "Turning off automatic running to save on costs"
-        }
-        
         if has_video:
             return {
                 "should_run": False,
                 "reason": "Cannot analyze posts with video content"
             }
 
-        # Check for clarity rating - we only run on clear posts (clarity 4 or 5)
+        # Check for clarity rating - must be clarity_5
         clarity_rating = None
         for classification in classifications:
             if classification.get("classifier_slug") == "clarity-v1":
@@ -591,18 +592,53 @@ class GeneralFactCheckerV1(BaseFactChecker):
         if clarity_rating is None:
             return {
                 "should_run": False,
-                "reason": "No clarity classification found - clarity rating required"
+                "reason": "No clarity classification found"
             }
 
-        if clarity_rating not in ["clarity_3", "clarity_4", "clarity_5"]:
+        if clarity_rating != "clarity_5":
             return {
                 "should_run": False,
-                "reason": f"Post clarity too low ({clarity_rating}) - requires clarity_4 or clarity_5"
+                "reason": f"Post clarity not high enough ({clarity_rating}) - requires clarity_5"
+            }
+
+        # Check domain classification
+        domain_values = []
+        for classification in classifications:
+            if classification.get("classifier_slug") == "domain-v1":
+                data = classification.get("classification_data", {})
+                if data.get("type") == "multi":
+                    values = data.get("values", [])
+                    domain_values = [v.get("value") for v in values]
+                    break
+
+        if not domain_values:
+            return {
+                "should_run": False,
+                "reason": "No domain classification found"
+            }
+
+        # Must NOT have politics & government
+        if "politics_government" in domain_values:
+            return {
+                "should_run": False,
+                "reason": "Post is about politics & government (excluded domain)"
+            }
+
+        # Must have either nature & climate OR science & engineering
+        has_required_domain = (
+            "nature_climate" in domain_values or
+            "science_engineering" in domain_values
+        )
+
+        if not has_required_domain:
+            return {
+                "should_run": False,
+                "reason": f"Post domains ({', '.join(domain_values)}) do not include nature & climate or science & engineering"
             }
 
         return {
             "should_run": True,
-            "reason": f"Post is eligible for general fact checking (no video, clarity: {clarity_rating})"
+            "reason": f"Post is eligible (clarity_5, no video, domains: {', '.join(domain_values)})"
         }
     
     def build_graph(self):
