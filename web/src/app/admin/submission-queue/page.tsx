@@ -76,7 +76,7 @@ export default function SubmissionQueuePage() {
 
   if (isLoading && !data) {
     return (
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
         <div className="flex items-center justify-center py-12">
           <p className="text-gray-500">Loading submission queue...</p>
         </div>
@@ -86,7 +86,7 @@ export default function SubmissionQueuePage() {
 
   if (error) {
     return (
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <p className="text-red-800">Failed to load submission queue</p>
@@ -97,13 +97,13 @@ export default function SubmissionQueuePage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <ListTodo className="h-8 w-8 text-blue-600" />
+      <div className="flex items-center gap-3 mb-4 md:mb-8">
+        <ListTodo className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Submission Queue</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Submission Queue</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">
             Posts with notes ready for submission to X.com Community Notes
           </p>
         </div>
@@ -112,21 +112,21 @@ export default function SubmissionQueuePage() {
       {/* Summary Card */}
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="text-xl">Queue Summary</CardTitle>
+          <CardTitle className="text-base md:text-xl">Queue Summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div className="flex items-center justify-between p-3 bg-white rounded-lg">
-              <span className="text-gray-700 font-medium">Posts in Queue</span>
-              <Badge variant="secondary" className="text-xl px-4 py-1">
+              <span className="text-sm md:text-base text-gray-700 font-medium">Posts in Queue</span>
+              <Badge variant="secondary" className="text-lg md:text-xl px-3 md:px-4 py-1">
                 {data?.total || 0}
               </Badge>
             </div>
             <div className="flex items-center justify-between p-3 bg-white rounded-lg">
-              <span className="text-gray-700 font-medium">
-                Minimum Score Threshold
+              <span className="text-sm md:text-base text-gray-700 font-medium">
+                Min Score Threshold
               </span>
-              <Badge variant="outline" className="text-xl px-4 py-1">
+              <Badge variant="outline" className="text-lg md:text-xl px-3 md:px-4 py-1">
                 {appliedMinScore.toFixed(2)}
               </Badge>
             </div>
@@ -137,15 +137,15 @@ export default function SubmissionQueuePage() {
       {/* Filter Controls */}
       <Card>
         <CardHeader>
-          <CardTitle>Filter Settings</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-base md:text-lg">Filter Settings</CardTitle>
+          <CardDescription className="text-sm">
             Adjust the minimum claim_opinion_score threshold
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-end gap-4">
-            <div className="flex-1 max-w-xs">
-              <Label htmlFor="min-score">Minimum Score</Label>
+          <div className="space-y-3">
+            <div className="w-full">
+              <Label htmlFor="min-score" className="text-sm">Minimum Score</Label>
               <Input
                 id="min-score"
                 type="number"
@@ -159,25 +159,27 @@ export default function SubmissionQueuePage() {
                 }}
                 className="mt-1"
               />
-              <div className="flex gap-2 mt-1">
-                <Button
-                  size="sm"
-                  onClick={handleApplyFilter}
-                >
-                  Apply Filter
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setInputMinScore(DEFAULT_MIN_SCORE.toString());
-                    setAppliedMinScore(DEFAULT_MIN_SCORE);
-                    setPage(0);
-                  }}
-                >
-                  Reset to Default
-                </Button>
-              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                size="sm"
+                onClick={handleApplyFilter}
+                className="w-full sm:w-auto"
+              >
+                Apply Filter
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setInputMinScore(DEFAULT_MIN_SCORE.toString());
+                  setAppliedMinScore(DEFAULT_MIN_SCORE);
+                  setPage(0);
+                }}
+                className="w-full sm:w-auto"
+              >
+                Reset to Default
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -186,13 +188,14 @@ export default function SubmissionQueuePage() {
       {/* Results Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Posts Ready for Submission</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-base md:text-lg">Posts Ready for Submission</CardTitle>
+          <CardDescription className="text-sm">
             Click the Manage button to open the post management page
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="border rounded-lg overflow-x-auto">
+        <CardContent className="space-y-4 md:px-6 px-2">
+          {/* Desktop Table View */}
+          <div className="hidden md:block border rounded-lg overflow-x-auto">
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
@@ -246,6 +249,43 @@ export default function SubmissionQueuePage() {
             </Table>
           </div>
 
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-1.5">
+            {data?.items?.map((item: any) => (
+              <Card key={item.post_uid} className="border py-2 gap-0">
+                <CardContent className="px-2.5 py-0">
+                  <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                    <div className="flex gap-1.5">
+                      <Badge
+                        variant="outline"
+                        className={`${getScoreBadgeColor(item.best_score)} text-xs py-0 px-1.5`}
+                      >
+                        {item.best_score.toFixed(2)}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs py-0 px-1.5">{item.note_count}</Badge>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  <p className="text-sm line-clamp-2 break-words mb-1 leading-tight">{item.post_text}</p>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full h-6 text-xs py-0"
+                    asChild
+                  >
+                    <Link href={`/posts/${item.post_uid}/manage`}>
+                      Manage
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
           {data?.items?.length === 0 && (
             <div className="text-center py-8">
               <p className="text-gray-500">
@@ -259,8 +299,8 @@ export default function SubmissionQueuePage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Showing {page * limit + 1} to{" "}
                 {Math.min((page + 1) * limit, data?.total || 0)} of{" "}
                 {data?.total || 0}
@@ -273,7 +313,7 @@ export default function SubmissionQueuePage() {
                   disabled={page === 0}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -281,7 +321,7 @@ export default function SubmissionQueuePage() {
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page >= totalPages - 1}
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>

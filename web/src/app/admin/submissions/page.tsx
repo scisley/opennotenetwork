@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -23,7 +22,6 @@ import {
 } from '@/components/ui/table'
 
 export default function SubmissionsPage() {
-  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -161,16 +159,17 @@ export default function SubmissionsPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-4 md:space-y-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4 md:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Community Notes Submissions</h1>
-          <p className="text-gray-600 mt-1">Monitor and track submitted notes status on X.com</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Community Notes Submissions</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">Monitor and track submitted notes status on X.com</p>
         </div>
         <Button
           onClick={handleUpdateStatuses}
           disabled={updateStatuses.isPending}
           size="lg"
+          className="w-full md:w-auto"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${updateStatuses.isPending ? 'animate-spin' : ''}`} />
           Update All Statuses
@@ -193,7 +192,7 @@ export default function SubmissionsPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {summary && Object.entries(summary.status_counts)
           .filter(([status]) => status !== 'pending')
           .sort(([a], [b]) => {
@@ -209,8 +208,8 @@ export default function SubmissionsPage() {
                 <div className="p-1 rounded-full bg-white/50">
                   {getStatusIcon(status)}
                 </div>
-                <span className="text-xl font-bold tabular-nums">{count as number}</span>
-                <p className="text-xs font-medium capitalize leading-tight">
+                <span className="text-lg sm:text-xl font-bold tabular-nums">{count as number}</span>
+                <p className="text-[10px] sm:text-xs font-medium capitalize leading-tight">
                   {status === 'displayed' ? 'Community Rated Helpful' :
                    status === 'currently_rated_helpful' ? 'Community Rated Helpful' :
                    status === 'not_displayed' ? 'Community Rated Not Helpful' :
@@ -327,9 +326,9 @@ export default function SubmissionsPage() {
           <CardTitle>All Submissions</CardTitle>
           <CardDescription>Search and browse submitted Community Notes</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 md:px-6 px-2">
           {/* Filters */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
@@ -346,7 +345,7 @@ export default function SubmissionsPage() {
               setStatusFilter(val === "all" ? "" : val)
               setPage(0)
             }}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full sm:w-[220px]">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -371,7 +370,8 @@ export default function SubmissionsPage() {
             </div>
           ) : (
             <>
-              <div className="border rounded-lg overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden md:block border rounded-lg overflow-x-auto">
                 <Table className="min-w-full">
                   <TableHeader>
                     <TableRow>
@@ -427,6 +427,43 @@ export default function SubmissionsPage() {
                 </Table>
               </div>
 
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-1.5">
+                {submissionsData?.submissions?.map((submission: any) => (
+                  <Card key={submission.submission_id} className="border py-2 gap-0">
+                    <CardContent className="px-2.5 py-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        {getStatusBadge(submission.status)}
+                        <div className="text-xs text-gray-500 whitespace-nowrap">
+                          {submission.submitted_at ?
+                            new Date(submission.submitted_at).toLocaleDateString() :
+                            'Not submitted'
+                          }
+                        </div>
+                      </div>
+
+                      <p className="text-sm line-clamp-2 break-words mb-1 leading-tight">{submission.note_text}</p>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs text-gray-500 line-clamp-1 break-words flex-1">
+                          {submission.post_text}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 h-6 px-2 text-xs"
+                          asChild
+                        >
+                          <a href={`/posts/${submission.post_uid}/manage`}>
+                            Manage
+                          </a>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
               {submissionsData?.submissions?.length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-gray-500">No submissions found</p>
@@ -435,8 +472,8 @@ export default function SubmissionsPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     Showing {page * limit + 1} to {Math.min((page + 1) * limit, submissionsData?.total || 0)} of {submissionsData?.total || 0}
                   </p>
                   <div className="flex gap-2">
@@ -447,7 +484,7 @@ export default function SubmissionsPage() {
                       disabled={page === 0}
                     >
                       <ChevronLeft className="h-4 w-4" />
-                      Previous
+                      <span className="hidden sm:inline">Previous</span>
                     </Button>
                     <Button
                       variant="outline"
@@ -455,7 +492,7 @@ export default function SubmissionsPage() {
                       onClick={() => setPage(p => p + 1)}
                       disabled={page >= totalPages - 1}
                     >
-                      Next
+                      <span className="hidden sm:inline">Next</span>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
