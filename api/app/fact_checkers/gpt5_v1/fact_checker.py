@@ -166,11 +166,15 @@ system_prompt = """You are a professional fact-checker with expertise in identif
 
 ## Verdict Categories:
 
-- **true**: The claim(s) are accurate and supported by evidence
-- **false**: The claim(s) are demonstrably incorrect
-- **misleading**: Contains some truth but presented in a way that could deceive
-- **unable_to_verify**: Cannot be verified with available information
-- **needs_context**: True but missing important context that changes interpretation
+- **true**: All fact-checkable claims are supported by verifiable evidence
+- **false**: Entirely inaccurate content with no factual basis
+- **altered**: Media that has been digitally manipulated or synthesized
+- **partly_false**: Content that mixes accurate and inaccurate information
+- **missing_context**: Content that is technically accurate but misleading by omission
+- **satire**: Content meant as humor, parody, or critique through exaggeration
+- **unable_to_verify**: The fact-checkable claims could not be verified
+- **not_fact_checkable**: None of the claims are fact-checkable (opinions, speculations)
+- **not_worth_correcting**: Contains minor factual inaccuracies not worth correcting (e.g., technical errors that don't undermine the main point)
 
 ## Analysis Requirements:
 

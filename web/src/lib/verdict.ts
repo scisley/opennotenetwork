@@ -8,6 +8,7 @@ export const VERDICT = {
   TRUE: 'true',
   UNABLE_TO_VERIFY: 'unable_to_verify',
   NOT_FACT_CHECKABLE: 'not_fact_checkable',
+  NOT_WORTH_CORRECTING: 'not_worth_correcting',
   ERROR: 'error'
 } as const;
 
@@ -56,6 +57,7 @@ export function getVerdictColorClass(verdict: string | null | undefined) {
       return "bg-yellow-100 text-yellow-800";
     case VERDICT.UNABLE_TO_VERIFY:
     case VERDICT.NOT_FACT_CHECKABLE:
+    case VERDICT.NOT_WORTH_CORRECTING:
       return "bg-gray-100 text-gray-800";
     case VERDICT.ERROR:
     default:
@@ -73,6 +75,7 @@ export function getVerdictDisplayName(verdict: string | null | undefined): strin
     [VERDICT.TRUE]: "True",
     [VERDICT.UNABLE_TO_VERIFY]: "Unable to Verify",
     [VERDICT.NOT_FACT_CHECKABLE]: "Not Fact-Checkable",
+    [VERDICT.NOT_WORTH_CORRECTING]: "Not Worth Correcting",
     [VERDICT.ERROR]: "Error"
   };
 

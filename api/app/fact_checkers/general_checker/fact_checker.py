@@ -243,6 +243,10 @@ sections:
       available information.
     - not_fact_checkable: None of the claims are fact-checkable. This means the
       post consists of opinions, speculations, or obvious hyperbole.
+    - not_worth_correcting: The post contains factual inaccuracies, but they are
+      minor and not worth correcting. Use this when technical errors exist but
+      don't undermine the main point of the post, or when correcting them would
+      likely anger reviewers without providing meaningful value.
 
 Output Requirements:
 - Output a single valid JSON object containing 'body', 'claims', and 'verdict'
@@ -278,7 +282,7 @@ Sample Output Format:
     }
         // ...repeat for each claim
     ],
-    "verdict": false|altered|partly_false|missing_context|satire|true|unable_to_verify|not_fact_checkable
+    "verdict": false|altered|partly_false|missing_context|satire|true|unable_to_verify|not_fact_checkable|not_worth_correcting
 }
 """
 

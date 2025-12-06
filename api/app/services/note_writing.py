@@ -190,6 +190,28 @@ async def write_note(
             await session.commit()
 
             logger.info(f"Note completed for fact check {fact_check_id} with {note_writer_slug}")
+
+            # Auto-submit if score qualifies (hardcoded threshold: -0.5)
+            if evaluation_json and not evaluation_json.get("error"):
+                score = evaluation_json.get("data", {}).get("claim_opinion_score")
+                if score is not None and score > -0.5:
+                    try:
+                        logger.info(f"Auto-submitting note {note.note_id} with score {score}")
+
+                        # Import here to avoid circular dependency
+                        from app.services import submission
+                        await submission.submit_note_to_x(
+                            note_id=note.note_id,
+                            session=session,
+                            # Steve Isley's user ID
+                            submitted_by_id=uuid.UUID("fe683772-7747-4479-9bdd-b80aa90cfee9")
+                        )
+
+                        logger.info(f"Successfully auto-submitted note {note.note_id}")
+                    except Exception as e:
+                        logger.warning(f"Auto-submit failed for note {note.note_id}: {e}")
+                        # Continue gracefully - note is still created successfully
+
             return _build_note_response(note, note_writer_record)
 
         except Exception as e:

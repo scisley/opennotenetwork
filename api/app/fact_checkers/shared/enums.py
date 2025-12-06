@@ -5,14 +5,15 @@ ACCURACY_LITERALS = Literal["accurate", "inaccurate", "mixed", "unable_to_verify
 
 # Fact-checking taxonomy
 VERDICT_LITERALS = Literal[
-    "false", 
-    "altered", 
-    "partly_false", 
-    "missing_context", 
-    "satire", 
-    "true", 
-    "unable_to_verify", 
-    "not_fact_checkable", 
+    "false",
+    "altered",
+    "partly_false",
+    "missing_context",
+    "satire",
+    "true",
+    "unable_to_verify",
+    "not_fact_checkable",
+    "not_worth_correcting",
     "error"
 ]
 
@@ -30,7 +31,7 @@ DEFAULT_VERDICT = "error"
 # Helper constants for verdict checks
 POSITIVE_VERDICTS = ["true"]
 NEGATIVE_VERDICTS = ["false", "altered", "partly_false", "missing_context"]
-NEUTRAL_VERDICTS = ["satire", "unable_to_verify", "not_fact_checkable", "error"]
+NEUTRAL_VERDICTS = ["satire", "unable_to_verify", "not_fact_checkable", "not_worth_correcting", "error"]
 
 # Only auto-trigger note writers for these verdicts
 NOTE_WRITING_VERDICTS = ["false", "altered", "partly_false", "missing_context", "satire"]

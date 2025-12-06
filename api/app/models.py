@@ -233,7 +233,7 @@ class FactCheck(Base):
     __table_args__ = (
         CheckConstraint("confidence >= 0 AND confidence <= 1", name="check_confidence_range"),
         CheckConstraint("status IN ('pending','processing','completed','failed','ineligible')", name="check_fact_check_status"),
-        CheckConstraint("verdict IN ('false','altered','partly_false','missing_context','satire','true','unknown')", name="check_verdict_values"),
+        CheckConstraint("verdict IN ('false','altered','partly_false','missing_context','satire','true','unable_to_verify','not_fact_checkable','not_worth_correcting','error')", name="check_verdict_values"),
         Index("idx_fact_checks_post_uid", "post_uid"),
         Index("idx_fact_checks_fact_checker_id", "fact_checker_id"),
         Index("idx_fact_checks_verdict", "verdict"),
