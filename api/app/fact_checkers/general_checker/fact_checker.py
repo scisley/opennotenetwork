@@ -604,7 +604,7 @@ class GeneralFactCheckerV1(BaseFactChecker):
         # Check domain classification
         domain_values = []
         for classification in classifications:
-            if classification.get("classifier_slug") == "domain-v1":
+            if classification.get("classifier_slug") == "domain-classifier-v1":
                 data = classification.get("classification_data", {})
                 if data.get("type") == "multi":
                     values = data.get("values", [])
